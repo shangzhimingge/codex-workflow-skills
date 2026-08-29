@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sol → Terra/Luna Handoff"
+  short_description: "Use balanced Scout, planning, and execution routing."
+  default_prompt: "Use $sol-luna-handoff to choose conditional Luna discovery, the minimum necessary Sol planning, and the suitable Terra or Luna executor."

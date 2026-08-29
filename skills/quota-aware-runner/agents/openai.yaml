@@ -1,0 +1,4 @@
+interface:
+  display_name: "Quota-Aware Workflow Runner"
+  short_description: "Auto-resume plus adaptive Sol, Terra, and Luna routing"
+  default_prompt: "Run one included-only auto-resume preflight, select the minimum-cost Sol/Terra/Luna route, checkpoint milestones, and finish only after fresh verification."

@@ -1,0 +1,22 @@
+{
+  "name": "codex-workflow-skills",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A skills.sh pack for auto-resume and adaptive Sol/Terra/Luna workflow routing.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "sync": "python tools/sync-composite.py",
+    "check:sync": "python tools/sync-composite.py --check",
+    "test": "npm run check:sync && npm run test:python",
+    "test:python": "python -m unittest discover -s tests -p \"test_*.py\" -v",
+    "test:cli": "node tests/skills-cli-smoke.mjs"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shangzhimingge/codex-workflow-skills.git"
+  }
+}
