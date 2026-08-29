@@ -5,7 +5,7 @@
   "description": "A skills.sh pack for auto-resume and adaptive Sol/Terra/Luna workflow routing.",
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.20.0"
   },
   "scripts": {
     "sync": "python tools/sync-composite.py",

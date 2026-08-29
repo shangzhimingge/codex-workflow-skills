@@ -4,7 +4,7 @@
 
 ## 安装
 
-前置条件：Node.js 18+、Codex、Python 3.9+。使用 Sol–Luna 自定义 Agent 时还需要 PowerShell 5.1+ 或 PowerShell 7+。
+前置条件：Node.js 22.20+（与当前 skills CLI 的声明一致）、Codex、Python 3.9+。使用 Sol–Luna 自定义 Agent 时还需要 PowerShell 5.1+ 或 PowerShell 7+。
 
 ### 交互选择
 

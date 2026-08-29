@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import subprocess
@@ -102,6 +103,15 @@ class PackStructureTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("--skill '*' --agent codex --yes", readme)
         self.assertIn("--skill '*' --agent '*' --yes", readme)
+
+    def test_node_support_floor_matches_cli_smoke_matrix(self):
+        package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+        self.assertEqual(">=22.20.0", package["engines"]["node"])
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("Node.js 22.20+", readme)
+        workflow = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        self.assertIn("node: [22]", workflow)
+        self.assertNotIn("node: [18, 20, 22]", workflow)
 
 
 if __name__ == "__main__":
