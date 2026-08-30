@@ -50,10 +50,28 @@ function runCase(name, args, expected) {
   return installed;
 }
 
+function assertLunaFirstCopy(installed, skill) {
+  const skillRoot = path.dirname(installed.get(skill)[0]);
+  const skillText = fs.readFileSync(path.join(skillRoot, "SKILL.md"), "utf8");
+  assert.match(skillText, /The default Tier 2 executor is `luna_executor`/, `${skill}: Luna-first marker`);
+  assert.match(skillText, /only one Luna-to-Terra executor switch/, `${skill}: single-handoff marker`);
+  assert.doesNotMatch(skillText, /Choose `terra_executor` for every other Tier 2 task/, `${skill}: no catch-all Terra`);
+  for (const name of ["luna-executor.toml", "terra-executor.toml"]) {
+    const installedAsset = fs.readFileSync(path.join(skillRoot, "assets", name));
+    const canonicalAsset = fs.readFileSync(path.join(root, "skills", "sol-luna-handoff", "assets", name));
+    assert.deepEqual(installedAsset, canonicalAsset, `${skill}: ${name} canonical bytes`);
+  }
+}
+
 try {
-  runCase("all", ["--skill", "*", "--agent", "codex", "--yes"], expectedAll);
+  const all = runCase("all", ["--skill", "*", "--agent", "codex", "--yes"], expectedAll);
+  assertLunaFirstCopy(all, "sol-luna-handoff");
+  assertLunaFirstCopy(all, "quota-aware-runner");
   for (const skill of expectedAll) {
     const installed = runCase(skill, ["--skill", skill, "--agent", "codex", "--yes"], new Set([skill]));
+    if (skill === "sol-luna-handoff" || skill === "quota-aware-runner") {
+      assertLunaFirstCopy(installed, skill);
+    }
     if (skill === "codex-auto-resume") {
       const unrelated = path.join(base, "unrelated-execution");
       fs.mkdirSync(unrelated, { recursive: true });

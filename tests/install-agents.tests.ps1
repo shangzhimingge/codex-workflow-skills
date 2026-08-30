@@ -208,7 +208,7 @@ function Test-V100Upgrade {
             $globalContent = [System.IO.File]::ReadAllText($globalAgentsPath)
             Assert-True ($globalContent.Contains('# Keep this rule')) 'v1.0 upgrade must preserve unrelated global guidance'
             Assert-True ($globalContent.Contains('adaptive Tier 1, Tier 2, and Tier 3')) 'v1.0 upgrade must replace the managed rule'
-            Write-Output "PASS v1.0 $newlineStyle built-in agent upgrades to v1.2"
+            Write-Output "PASS v1.0 $newlineStyle built-in agent upgrades to canonical bytes"
         } finally {
             Remove-Item -LiteralPath $codexHome -Recurse -Force -ErrorAction SilentlyContinue
         }
@@ -245,7 +245,21 @@ function Get-V110BundledAgentContent {
     )
 
     $utf8Strict = [System.Text.UTF8Encoding]::new($false, $true)
-    $content = [System.IO.File]::ReadAllText((Join-Path $assetsDirectory $FileName), $utf8Strict)
+    if ($FileName -ceq 'luna-executor.toml') {
+        $content = @(
+            'name = "luna_executor"',
+            'description = "Implements an approved plan, runs its checks, and returns concise evidence."',
+            'model = "gpt-5.6-luna"',
+            'model_reasoning_effort = "medium"',
+            'sandbox_mode = "workspace-write"',
+            'developer_instructions = """',
+            'Execute the supplied plan as a binding contract. Make only in-scope changes, run every specified verification command, inspect the resulting diff, and self-review against every acceptance criterion. Stop before further edits and report UPGRADE_NEEDED if discovered scope or risk exceeds the supplied tier. Return a report capped at 300 output tokens with changed files, concise summary, commands and exit status, self-review, and remaining concerns or NONE; raw command output may be stored in files and is excluded from the cap. If context is missing, return NEEDS_CONTEXT with exact missing facts. Do not redesign or broaden scope.',
+            '"""',
+            ''
+        ) -join "`n"
+    } else {
+        $content = [System.IO.File]::ReadAllText((Join-Path $assetsDirectory $FileName), $utf8Strict)
+    }
     $lfContent = $content.Replace("`r`n", "`n").Replace("`r", "`n")
     if ($NewlineStyle -ceq 'CRLF') {
         return $lfContent.Replace("`n", "`r`n")
@@ -320,7 +334,7 @@ function Test-V110Upgrade {
             }
             $globalContent = [System.IO.File]::ReadAllText($globalAgentsPath)
             Assert-True ($globalContent.Contains('# Keep this v1.1 rule')) 'v1.1 upgrade must preserve unrelated global guidance'
-            Write-Output "PASS v1.1 $newlineStyle built-in agents upgrade to v1.2"
+            Write-Output "PASS v1.1 $newlineStyle built-in agents upgrade to canonical bytes"
         } finally {
             Remove-Item -LiteralPath $codexHome -Recurse -Force -ErrorAction SilentlyContinue
         }
@@ -479,14 +493,17 @@ function Test-AdaptiveRoutingContracts {
     Assert-True ($skill.Contains('change crosses multiple subsystems with ordering or dependency relationships')) 'compact planning must trigger for ordered cross-subsystem work'
     Assert-True ($skill.Contains('compatibility constraints or a new cross-file invariant exist')) 'compact planning must trigger for compatibility or cross-file invariants'
     Assert-True ($skill.Contains('acceptance criteria permit multiple implementations with material tradeoffs')) 'compact planning must trigger for material implementation tradeoffs'
-    Assert-True ($skill.Contains('implementation strategy is completely explicit')) 'Tier 2 Luna must require a completely explicit strategy'
-    foreach ($mechanicalKind in @('local', 'mechanical', 'repetitive', 'configuration', 'test', 'documentation editing')) {
-        Assert-True ($skill.Contains($mechanicalKind)) "Tier 2 Luna boundary must cover $mechanicalKind work"
+    Assert-True ($skill.Contains('The default Tier 2 executor is `luna_executor`')) 'Tier 2 must default to Luna'
+    foreach ($condition in @('scope is bounded', 'implementation strategy is explicit', 'independently verifiable')) {
+        Assert-True ($skill.Contains($condition)) "Tier 2 Luna boundary must require $condition"
     }
-    Assert-True ($skill.Contains('Choose `luna_executor` only when the implementation strategy is completely explicit and the work is local, mechanical, repetitive, configuration, test, or documentation editing that requires no derivation of cross-file invariants and no handling of unknown test failures.')) 'Tier 2 Luna must satisfy the complete positive and negative mechanical boundary'
-    Assert-True ($skill.Contains('no derivation of cross-file invariants')) 'Tier 2 Luna must exclude cross-file invariant reasoning'
-    Assert-True ($skill.Contains('no handling of unknown test failures')) 'Tier 2 Luna must exclude unknown test failures'
-    Assert-True ($skill.Contains('Choose `terra_executor` for every other Tier 2 task')) 'Tier 2 must route non-mechanical work to Terra'
+    Assert-True ($skill.Contains('Multi-file work, business logic, and ordinary local debugging do not by themselves select Terra.')) 'coarse work labels must not select Terra'
+    foreach ($exception in @('cross-subsystem or cross-file invariant derivation', 'shared-interface judgment', 'ambiguous root cause', 'integration uncertainty', 'major refactor', 'unknown failure requiring non-local diagnosis')) {
+        Assert-True ($skill.Contains($exception)) "Tier 2 Terra boundary must include $exception"
+    }
+    Assert-True ($skill.Contains('only one Luna-to-Terra executor switch')) 'Tier 2 must permit only one executor switch'
+    Assert-True ($skill.Contains('correction count continues across the handoff')) 'correction count must survive the handoff'
+    Assert-True ($skill.Contains('Tier 3 predicate remains a tier upgrade')) 'Tier 3 discovery must remain a tier upgrade'
     Assert-True ($skill.Contains('Use `terra_executor` as the main executor for every Tier 3 task')) 'Tier 3 must use Terra as the main executor'
     Assert-True ($skill.Contains('mandatory high-reasoning verification')) 'Tier 3 must require final Sol verification'
     Assert-True ($skill.Contains('300 output tokens')) 'executor reports must be capped at 300 output tokens'
@@ -534,8 +551,11 @@ function Test-AdaptiveRoutingContracts {
     Assert-True ($scout.Contains('250 output tokens')) 'Scout instructions must enforce the evidence budget'
     Assert-True ($scout.Contains('Do not plan, edit, verify an implementation')) 'Scout instructions must prohibit implementation work'
     Assert-True ($terraExecutor.Contains('300 output tokens')) 'Terra instructions must enforce the implementation report budget'
-    Assert-True ($terraExecutor.Contains('ordinary implementation details and test failures')) 'Terra instructions must permit ordinary error correction'
+    Assert-True ($terraExecutor.Contains('Tier 2 Terra exception or Tier 3 main body')) 'Terra instructions must name its exception and Tier 3 roles'
+    Assert-True ($terraExecutor.Contains('Luna report, current diff, and check evidence')) 'Terra instructions must accept the complete handoff evidence'
     Assert-True ($executor.Contains('300 output tokens')) 'standard executor instructions must enforce the report budget'
+    Assert-True ($executor.Contains('six Terra exceptions')) 'Luna instructions must enforce the closed exception set'
+    Assert-True ($executor.Contains('stop before expanding scope or making further edits')) 'Luna instructions must stop before crossing the boundary'
     Assert-True ($fastExecutor.Contains('300 output tokens')) 'fast executor instructions must enforce the report budget'
     Assert-True ($fastExecutor.Contains('self-verif')) 'fast executor instructions must require self-verification'
 

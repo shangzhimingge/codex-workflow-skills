@@ -41,7 +41,7 @@ Use the task brief plus the completed Scout report, when present. Tier 1 selects
 
 ### State 4 - decide Executor
 
-Tier 1 selects `luna`. Tier 2 applies the explicit Luna/Terra boundary below. Tier 3 always selects `terra`.
+Tier 1 selects `luna`. Tier 2 uses `luna_executor` by default and applies the closed Terra exception set below. Tier 3 always selects `terra`.
 
 ### State 5 - emit the final route
 
@@ -81,7 +81,30 @@ Run `luna_scout` only when a Conditional Scout trigger applies. Run `sol_compact
 
 The compact plan must fit within **400 output tokens** and contain only scope and non-goals, ordered steps, affected files, checks, and acceptance criteria. If no planning trigger applies, the coordinator creates an explicit task brief and records `Planner: none`. **Skip Sol.**
 
-Choose `luna_executor` only when the implementation strategy is completely explicit and the work is local, mechanical, repetitive, configuration, test, or documentation editing that requires no derivation of cross-file invariants and no handling of unknown test failures. Choose `terra_executor` for every other Tier 2 task.
+The default Tier 2 executor is `luna_executor` when the scope is bounded, the implementation strategy is explicit, and the result is independently verifiable. Bounded means the permitted subsystems and interfaces plus the stopping condition are known. Independently verifiable means runnable checks or observable acceptance evidence exist; it does not mean the work requires zero implementation judgment. Multi-file work, business logic, and ordinary local debugging do not by themselves select Terra.
+
+Select `terra_executor` directly only when the task already requires at least one of these six Terra exceptions before execution:
+
+1. cross-subsystem or cross-file invariant derivation;
+2. shared-interface judgment;
+3. ambiguous root cause;
+4. integration uncertainty;
+5. major refactor;
+6. unknown failure requiring non-local diagnosis.
+
+Do not use Terra as a fallback. If no named Terra exception exists but bounded scope, an explicit implementation strategy, or independent verification is not yet established, do not select an executor yet:
+
+- when a Tier 2 planning trigger applies, apply the compact-planning triggers and run `sol_compact_planner`, then re-evaluate the Luna/Terra boundary from the binding plan;
+- when facts required to establish one of the three Luna conditions are missing, return `NEEDS_CONTEXT` naming the exact missing condition and facts;
+- when the boundary remains ambiguous before editing, apply the existing Tier 3 ambiguity predicate and restart routing as Tier 3.
+
+Only a named Terra exception permits a Tier 2 route to `terra_executor`.
+
+Known failures that can be diagnosed inside the bounded local scope remain with Luna. Luna may resolve ordinary implementation details and local diagnostic decisions within the brief or plan; it does not redesign, broaden scope, change shared-interface semantics without direction, or pursue non-local unknown failures.
+
+If Luna first discovers a Terra exception or required scope expansion, it must stop before expanding scope or making further edits and return `UPGRADE_NEEDED`. Preserve the current diff and report the triggering exception, evidence, changed files, check evidence, and the next decision needed. The coordinator permits only one Luna-to-Terra executor switch for a Tier 2 routing pass. It sends the original task brief or binding plan, Luna report, current diff, and check evidence to `terra_executor`, then must reuse the same `terra_executor` for the remaining implementation and ordinary corrections. Do not switch back to Luna or start another Terra for the same executor upgrade.
+
+Discovery of a Tier 3 predicate remains a tier upgrade under the existing routing rules, not an executor handoff.
 
 Invoke `sol_planner` with high reasoning for verification only when at least one evidence trigger occurs:
 
@@ -103,11 +126,11 @@ The verifier returns `VERIFIED` or a bounded numbered findings list naming the f
 
 ## Shared controls
 
-- Use one main executor per task. Terra and Luna implementation reports each fit within **300 output tokens**, excluding raw command output stored in task-local files. Each report contains changed files, a concise summary, commands and exit status, self-review, and remaining concerns or `NONE`.
+- Keep exactly one active main executor at a time. A permitted Tier 2 Luna-to-Terra handoff replaces Luna rather than adding a second active executor. Terra and Luna implementation reports each fit within **300 output tokens**, excluding raw command output stored in task-local files. Each report contains changed files, a concise summary, commands and exit status, self-review, and remaining concerns or `NONE`.
 - Exchange Scout, plan, and execution evidence through task-local files. Pass only relevant paths and compressed summaries between agents.
 - Sol reads compressed evidence and necessary files; it does not perform broad repository traversal, raw-log screening, routine coding, or ordinary test-failure repair loops.
 - If scope or risk crosses a higher-tier predicate, stop and upgrade before further edits. Never downgrade after editing starts.
-- Send ordinary implementation corrections to the same executor and count them under one task brief or plan. After 2 correction rounds under one task brief or plan, replan before any further correction and reset the count only after the new plan is accepted:
+- Send ordinary implementation corrections to the same active executor and count them under one task brief or plan. The correction count continues across the handoff and does not reset merely because Luna was replaced by Terra. After 2 correction rounds under one task brief or plan, replan before any further correction and reset the count only after the new plan is accepted:
   - for Tier 2 work with `Planner: none`, invoke `sol_compact_planner` before any further correction and use its output as the new binding plan;
   - for work already governed by a compact or full plan, return to the applicable Sol planner;
   - for Tier 1, return `UPGRADE_NEEDED`, reclassify as at least Tier 2, and invoke `sol_compact_planner` before any further correction. Never continue repeated Tier 1 corrections on the direct brief.
@@ -121,8 +144,8 @@ When a named custom agent is unavailable, dispatch a fresh agent with the matchi
 - `sol_planner`: `gpt-5.6-sol`, high reasoning, read-only; full planning or verification contract.
 - `sol_compact_planner`: `gpt-5.6-sol`, medium reasoning, read-only; the 400-token compact-plan contract.
 - `luna_scout`: `gpt-5.6-luna`, low reasoning, read-only; the 250-token discovery-evidence contract.
-- `terra_executor`: `gpt-5.6-terra`, medium reasoning, workspace-write; binding-plan or task-brief execution contract with a 300-token report.
-- `luna_executor`: `gpt-5.6-luna`, medium reasoning, workspace-write; mechanical binding-plan or task-brief execution contract with a 300-token report.
+- `terra_executor`: `gpt-5.6-terra`, medium reasoning, workspace-write; Tier 2 Terra-exception or Tier 3 execution, including a single evidence-preserving Luna handoff, with a 300-token report.
+- `luna_executor`: `gpt-5.6-luna`, medium reasoning, workspace-write; default bounded, explicit, independently verifiable Tier 2 execution with a stop-before-edit Terra-exception contract and a 300-token report.
 - `luna_fast_executor`: `gpt-5.6-luna`, low reasoning, workspace-write; Tier 1 direct execution and self-verification contract with a 300-token report.
 
 Reuse the same main executor for correction rounds and preserve the selected tier's Scout, planning, execution, and verification rules.

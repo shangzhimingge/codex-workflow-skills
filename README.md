@@ -1,6 +1,6 @@
 # Codex Workflow Skills
 
-一个兼容优先的 skills.sh Skill Pack：保留 `codex-auto-resume` 与 `sol-luna-handoff` 的公共名称，并提供可独立安装的组合 Skill `quota-aware-runner`。
+一个兼容优先的 skills.sh Skill Pack（Pack v1.1.0）：保留 `codex-auto-resume` 与 `sol-luna-handoff` 的公共名称，并提供可独立安装的组合 Skill `quota-aware-runner`。
 
 ## 安装
 
@@ -46,6 +46,12 @@ npx skills add shangzhimingge/codex-workflow-skills --skill quota-aware-runner
 | `sol-luna-handoff` | 按风险与范围确定性选择 Tier 1/2/3 及 Sol、Terra、Luna 路线 | 六个 Agent 定义、全局托管块、原子安装脚本 |
 | `quota-aware-runner` | 一次预检后路由，在实施与验证里程碑维护检查点 | 内嵌 Auto Resume 运行时与六 Agent bootstrap，不依赖同包其他 Skill |
 
+### Luna-first v1.4.0 路由
+
+独立的 `sol-luna-handoff` 与组合的 `quota-aware-runner` 都携带相同的 Luna-first v1.4.0 路由契约。Tier 2 在范围有界、实现策略明确、结果可独立验证时默认交给 Luna；多文件改动、业务逻辑和有界的本地调试本身不会触发 Terra。
+
+Terra 只处理六类明确例外（six Terra exceptions）：跨子系统或跨文件不变量推导、共享接口判断、根因不明确、集成行为不确定、大型重构、需要非局部诊断的未知失败。Luna 首次发现其中一项时，会在扩大范围前返回 `UPGRADE_NEEDED`，保留当前 diff 与检查证据；每个 Tier 2 路由过程只允许一次 Luna→Terra handoff，修正轮次计数跨 handoff 延续。
+
 ## 首次运行
 
 ### Sol–Luna bootstrap
@@ -88,7 +94,7 @@ npx skills remove --skill quota-aware-runner --yes
 npx skills remove --skill codex-auto-resume sol-luna-handoff quota-aware-runner --yes
 ```
 
-维护者更新规范与派生文件的流程见 [`docs/design.md`](docs/design.md)。仓库根安装工具仅服务于 Pack 开发，不属于 skills.sh 的单 Skill 运行时契约。
+维护者更新规范与派生文件的流程见 [`docs/design.md`](docs/design.md)，机器可读的固定上游版本见 [`docs/upstream-provenance.json`](docs/upstream-provenance.json)。仓库根安装工具仅服务于 Pack 开发，不属于 skills.sh 的单 Skill 运行时契约。
 
 ## License
 

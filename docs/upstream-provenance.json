@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "upstreams": {
+    "codex-auto-resume": {
+      "repository": "https://github.com/shangzhimingge/codex-auto-resume",
+      "commit": "e7dae9d22bef339550dce7f9ea80c0a472b0beea",
+      "sourcePath": "skill/codex-auto-resume",
+      "mirrorMode": "pack-path-adjusted",
+      "treeSha256": "35bdb2d8052bc8b6bd0830eef57aa185702384c79c5a3b06ae9e565b101968be"
+    },
+    "sol-luna-handoff": {
+      "repository": "https://github.com/shangzhimingge/sol-luna-handoff",
+      "commit": "322d106facaccfb7f78d6a5b0f67f0b1c810f4ea",
+      "sourcePath": "skill/sol-luna-handoff",
+      "skillVersion": "1.4.0",
+      "mirrorMode": "byte-identical",
+      "treeSha256": "164f8325b78527cf1aa0eff8427807cb2e8d8d84160df89f2e73504781e2986f"
+    }
+  }
+}
