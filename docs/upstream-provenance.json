@@ -6,7 +6,7 @@
       "commit": "e7dae9d22bef339550dce7f9ea80c0a472b0beea",
       "sourcePath": "skill/codex-auto-resume",
       "mirrorMode": "pack-path-adjusted",
-      "treeSha256": "35bdb2d8052bc8b6bd0830eef57aa185702384c79c5a3b06ae9e565b101968be"
+      "treeSha256": "c04bca9d790984c25c1a53a86aa082f235ea0de1a2105edab7df230c68a7d529"
     },
     "sol-luna-handoff": {
       "repository": "https://github.com/shangzhimingge/sol-luna-handoff",

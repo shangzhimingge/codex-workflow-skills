@@ -1,5 +1,6 @@
 import hashlib
 import json
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -11,7 +12,8 @@ AUTO = ROOT / "skills" / "codex-auto-resume"
 ROUTING_MARKER = "## Deterministic routing"
 SOL_COMMIT = "322d106facaccfb7f78d6a5b0f67f0b1c810f4ea"
 SOL_TREE_SHA256 = "164f8325b78527cf1aa0eff8427807cb2e8d8d84160df89f2e73504781e2986f"
-AUTO_TREE_SHA256 = "35bdb2d8052bc8b6bd0830eef57aa185702384c79c5a3b06ae9e565b101968be"
+AUTO_TREE_SHA256 = "c04bca9d790984c25c1a53a86aa082f235ea0de1a2105edab7df230c68a7d529"
+PACK_BASELINE = "4611555d7b0540ca32cfe4a03c5a734985b8804b"
 CANONICAL_FILES = {
     "SKILL.md",
     "agents/openai.yaml",
@@ -45,6 +47,34 @@ def tree_digest(root: Path) -> str:
         digest.update(path.relative_to(root).as_posix().encode("utf-8"))
         digest.update(b"\0")
         digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def git_index_tree_digest(root: Path) -> str:
+    prefix = root.relative_to(ROOT).as_posix() + "/"
+    tracked = subprocess.check_output(
+        ["git", "ls-files", "-z", "--", prefix],
+        cwd=ROOT,
+    ).decode("utf-8").split("\0")
+    entries = []
+    for repository_path in tracked:
+        if not repository_path:
+            continue
+        if not repository_path.startswith(prefix):
+            raise AssertionError(f"tracked path outside tree: {repository_path}")
+        relative_path = repository_path[len(prefix) :]
+        blob = subprocess.check_output(
+            ["git", "show", f":{repository_path}"],
+            cwd=ROOT,
+        )
+        entries.append((relative_path, blob))
+
+    digest = hashlib.sha256()
+    for relative_path, blob in sorted(entries):
+        digest.update(relative_path.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(blob)
         digest.update(b"\0")
     return digest.hexdigest()
 
@@ -124,7 +154,17 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertIn("upstream-provenance.json", design)
 
     def test_auto_resume_tree_stays_byte_identical(self):
-        self.assertEqual(AUTO_TREE_SHA256, tree_digest(AUTO))
+        self.assertEqual(AUTO_TREE_SHA256, git_index_tree_digest(AUTO))
+        result = subprocess.run(
+            ["git", "diff", "--name-only", PACK_BASELINE, "HEAD", "--", "skills/codex-auto-resume"],
+            cwd=ROOT,
+            text=True,
+            encoding="utf-8",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual("", result.stdout.strip(), result.stdout)
 
 
 if __name__ == "__main__":
