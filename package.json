@@ -1,8 +1,8 @@
 {
   "name": "codex-workflow-skills",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
-  "description": "A skills.sh pack for auto-resume and adaptive Sol/Terra/Luna workflow routing.",
+  "description": "A skills.sh pack for auto-resume and adaptive or Sol-to-Luna workflow routing.",
   "type": "module",
   "engines": {
     "node": ">=22.20.0"

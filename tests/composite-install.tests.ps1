@@ -44,6 +44,10 @@ try {
     if (-not $compositeSkill.Contains('The default Tier 2 executor is `luna_executor`')) {
         throw 'composite must carry the Luna-first Tier 2 contract'
     }
+    if (-not $compositeSkill.Contains('Profile: adaptive|sol-luna') -or
+        -not $compositeSkill.Contains('Tier 2 and Tier 3 always select `luna_executor`')) {
+        throw 'composite must carry the optional Sol-Luna profile contract'
+    }
     foreach ($name in $agentNames) {
         $canonicalAsset = Join-Path $root "skills\sol-luna-handoff\assets\$name"
         $compositeAsset = Join-Path $root "skills\quota-aware-runner\assets\$name"
@@ -59,7 +63,9 @@ try {
     $mapPattern = '(?s)\$knownLegacyAgentHashes = @\{.*?\r?\n\}'
     $canonicalMap = [regex]::Match($canonicalInstallerText, $mapPattern).Value
     $compositeMap = [regex]::Match($compositeInstallerText, $mapPattern).Value
-    if ([string]::IsNullOrEmpty($canonicalMap) -or $canonicalMap -cne $compositeMap) {
+    $canonicalMapNormalized = $canonicalMap.Replace("`r`n", "`n")
+    $compositeMapNormalized = $compositeMap.Replace("`r`n", "`n")
+    if ([string]::IsNullOrEmpty($canonicalMap) -or $canonicalMapNormalized -cne $compositeMapNormalized) {
         throw 'composite legacy allowlist must exactly match the canonical upstream-verified map'
     }
 

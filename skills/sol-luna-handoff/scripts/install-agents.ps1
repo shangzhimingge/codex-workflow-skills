@@ -1,5 +1,8 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
-param()
+param(
+    [ValidateSet('adaptive', 'sol-luna')]
+    [string]$Profile = 'adaptive'
+)
 
 $ErrorActionPreference = 'Stop'
 
@@ -12,6 +15,7 @@ $codexHome = if ($env:CODEX_HOME) {
 
 $agentsDirectory = [System.IO.Path]::GetFullPath((Join-Path $codexHome 'agents'))
 $globalAgentsPath = [System.IO.Path]::GetFullPath((Join-Path $codexHome 'AGENTS.md'))
+$profileConfigPath = [System.IO.Path]::GetFullPath((Join-Path $codexHome 'sol-luna-handoff.json'))
 $sourceDirectory = Join-Path $skillDirectory 'assets'
 $agentFiles = @(
     'sol-planner.toml',
@@ -52,6 +56,12 @@ $startMarker = '<!-- BEGIN SOL-LUNA-HANDOFF MANAGED BLOCK -->'
 $endMarker = '<!-- END SOL-LUNA-HANDOFF MANAGED BLOCK -->'
 $utf8Strict = New-Object System.Text.UTF8Encoding($false, $true)
 $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+$profileConfigText = "{`n  `"schemaVersion`": 1,`n  `"executionProfile`": `"$Profile`"`n}`n"
+$profileConfigBytes = $utf8NoBom.GetBytes($profileConfigText)
+$recognizedProfileConfigs = @(
+    "{`n  `"schemaVersion`": 1,`n  `"executionProfile`": `"adaptive`"`n}`n",
+    "{`n  `"schemaVersion`": 1,`n  `"executionProfile`": `"sol-luna`"`n}`n"
+)
 
 function Test-ByteArrayEqual {
     param(
@@ -115,6 +125,19 @@ function Write-BytesAtomically {
         if ([System.IO.File]::Exists($backupPath)) {
             [System.IO.File]::Delete($backupPath)
         }
+    }
+}
+
+$existingProfileConfigBytes = if ([System.IO.File]::Exists($profileConfigPath)) {
+    [System.IO.File]::ReadAllBytes($profileConfigPath)
+} else {
+    $null
+}
+
+if ($null -ne $existingProfileConfigBytes) {
+    $existingProfileConfig = $utf8Strict.GetString($existingProfileConfigBytes)
+    if ($recognizedProfileConfigs -cnotcontains $existingProfileConfig) {
+        throw "Profile configuration collision: destination contains unrecognized content: $profileConfigPath"
     }
 }
 
@@ -218,3 +241,11 @@ if ($updatedGlobalAgents -cne $existingGlobalAgents -and
 }
 
 Write-Output $globalAgentsPath
+
+if (($null -eq $existingProfileConfigBytes -or
+    -not (Test-ByteArrayEqual -Left $existingProfileConfigBytes -Right $profileConfigBytes)) -and
+    $PSCmdlet.ShouldProcess($profileConfigPath, "Install $Profile execution profile")) {
+    Write-BytesAtomically -Path $profileConfigPath -Bytes $profileConfigBytes
+}
+
+Write-Output $profileConfigPath

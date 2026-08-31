@@ -11,11 +11,11 @@
     },
     "sol-luna-handoff": {
       "repository": "https://github.com/shangzhimingge/sol-luna-handoff",
-      "commit": "322d106facaccfb7f78d6a5b0f67f0b1c810f4ea",
+      "commit": "f755863bb21c1a31e15c47ca3d8a6c7ae5351ce5",
       "sourcePath": "skill/sol-luna-handoff",
-      "skillVersion": "1.4.0",
+      "skillVersion": "1.5.0",
       "mirrorMode": "byte-identical",
-      "treeSha256": "164f8325b78527cf1aa0eff8427807cb2e8d8d84160df89f2e73504781e2986f"
+      "treeSha256": "c70f678430dc685bdcf6ffb1b4682a37c6d1bdb77f7205a21b878c74d64b664f"
     }
   }
 }

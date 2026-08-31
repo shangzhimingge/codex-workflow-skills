@@ -9,9 +9,11 @@ Select the least costly route that satisfies the task's scope and risk, then adv
 
 ## Preflight
 
-1. Check whether `sol_planner`, `sol_compact_planner`, `luna_scout`, `terra_executor`, `luna_executor`, and `luna_fast_executor` are selectable.
-2. If any are absent, run `scripts/install-agents.ps1` from this Skill directory. Newly installed agents may require a fresh task to become selectable; until then, use the fallback contracts below.
-3. Preserve the parent task's sandbox and approval settings.
+1. Read `$CODEX_HOME/sol-luna-handoff.json`, where `CODEX_HOME` defaults to `~/.codex`. Accept schemaVersion `1` with executionProfile `adaptive` or `sol-luna`. Treat a missing configuration as `adaptive`; if an existing document is malformed or unsupported, return `NEEDS_CONTEXT` with the exact configuration problem before routing.
+2. Record the selected value as the active profile for the whole routing pass.
+3. Check whether `sol_planner`, `sol_compact_planner`, `luna_scout`, `terra_executor`, `luna_executor`, and `luna_fast_executor` are selectable.
+4. If any are absent, run `scripts/install-agents.ps1 -Profile <active-profile>` from this Skill directory. Newly installed agents may require a fresh task to become selectable; until then, use the fallback contracts below.
+5. Preserve the parent task's sandbox and approval settings.
 
 ## Deterministic routing
 
@@ -41,15 +43,15 @@ Use the task brief plus the completed Scout report, when present. Tier 1 selects
 
 ### State 4 - decide Executor
 
-Tier 1 selects `luna`. Tier 2 uses `luna_executor` by default and applies the closed Terra exception set below. Tier 3 always selects `terra`.
+Tier 1 selects `luna` in both profiles. In the `adaptive` profile, Tier 2 uses `luna_executor` by default and applies the closed Terra exception set below, while Tier 3 always selects `terra`. In the `sol-luna` profile, Tier 2 and Tier 3 always select `luna_executor`; never select `terra_executor` while `sol-luna` is active.
 
 ### State 5 - emit the final route
 
 Emit exactly one final route line immediately before Planner or Executor delegation:
 
-`Route: Tier N - {reason}; Scout: yes|no; Planner: none|compact|full; Executor: luna|terra`
+`Route: Tier N - {reason}; Profile: adaptive|sol-luna; Scout: yes|no; Planner: none|compact|full; Executor: luna|terra`
 
-After emitting the line, delegate the selected Planner when it is `compact` or `full`, then delegate the selected Executor. Treat the emitted line as the unique final routing decision for that routing pass; only an upgrade starts a new pass.
+After emitting the line, delegate the selected Planner when it is `compact` or `full`, then delegate the selected Executor. Include the active profile in every executor brief. Treat the emitted line as the unique final routing decision for that routing pass; only an upgrade starts a new pass.
 
 ## Conditional Scout for Tier 2 and Tier 3
 
@@ -68,7 +70,7 @@ Skip Scout when the exact files, symbols, constraints, and acceptance criteria a
 
 ### Tier 1: direct Luna
 
-Set `Scout: no; Planner: none; Executor: luna`. Dispatch `luna_fast_executor` with task-local instructions, relevant paths, the acceptance condition, and focused checks. It implements, runs the checks, inspects the diff, and self-verifies. Skip Sol, Scout, and Terra.
+In both `adaptive` and `sol-luna`, Tier 1 uses `luna_fast_executor`. Set `Scout: no; Planner: none; Executor: luna`. Dispatch `luna_fast_executor` with task-local instructions, relevant paths, the active profile, the acceptance condition, and focused checks. It implements, runs the checks, inspects the diff, and self-verifies. Skip Sol, Scout, and Terra.
 
 ### Tier 2: conditional planning and execution
 
@@ -80,6 +82,8 @@ Run `luna_scout` only when a Conditional Scout trigger applies. Run `sol_compact
 - the acceptance criteria permit multiple implementations with material tradeoffs.
 
 The compact plan must fit within **400 output tokens** and contain only scope and non-goals, ordered steps, affected files, checks, and acceptance criteria. If no planning trigger applies, the coordinator creates an explicit task brief and records `Planner: none`. **Skip Sol.**
+
+#### Profile: adaptive
 
 The default Tier 2 executor is `luna_executor` when the scope is bounded, the implementation strategy is explicit, and the result is independently verifiable. Bounded means the permitted subsystems and interfaces plus the stopping condition are known. Independently verifiable means runnable checks or observable acceptance evidence exist; it does not mean the work requires zero implementation judgment. Multi-file work, business logic, and ordinary local debugging do not by themselves select Terra.
 
@@ -116,17 +120,25 @@ Invoke `sol_planner` with high reasoning for verification only when at least one
 
 With no evidence trigger, the main executor's fresh checks, diff inspection, and self-review complete the route.
 
-### Tier 3: full Sol-Terra-Sol
+#### Profile: sol-luna
+
+Tier 2 always uses `luna_executor`. The six Terra exceptions remain evidence for compact Sol planning, binding decisions, or evidence-triggered Sol verification; they never authorize a Terra executor switch in this profile. If Luna discovers a missing binding decision or scope beyond the brief or plan, it stops before further edits and returns `UPGRADE_NEEDED` with preserved evidence for Sol replanning or tier reclassification. A Tier 3 predicate still upgrades the tier. Never select `terra_executor` or request a Luna-to-Terra handoff while `sol-luna` is active.
+
+Use the same evidence triggers above for optional Tier 2 Sol verification. With no trigger, Luna's fresh checks, diff inspection, and self-review complete the route.
+
+### Tier 3: full Sol-Executor-Sol
 
 Run `luna_scout` first only when a Conditional Scout trigger applies. Dispatch `sol_planner` with high reasoning to read the user requirements, compressed Scout evidence when present, and necessary files, then produce the root cause or architecture, constraints, ordered plan, checks, and acceptance criteria.
 
-Use `terra_executor` as the main executor for every Tier 3 task. Only a fully bounded, independently parallel, mechanical leaf task that reduces total context may use **at most one additional Luna worker**. Then send the plan, acceptance criteria, Terra report, diff summary, and fresh evidence to `sol_planner` for mandatory high-reasoning verification.
+In the `adaptive` profile, Tier 3 uses `terra_executor` as its main executor. In the `sol-luna` profile, Tier 3 uses `luna_executor` as its main executor. Tier 3 therefore always retains full `sol_planner` planning and mandatory high-reasoning verification, regardless of profile. Only under `adaptive`, a fully bounded, independently parallel, mechanical leaf task that reduces total context may use **at most one additional Luna worker**.
+
+Then send the active profile, plan, acceptance criteria, executor report, diff summary, and fresh evidence to `sol_planner` for mandatory high-reasoning verification. In `sol-luna`, Terra exceptions are planning and verification evidence, and the coordinator never selects `terra_executor`.
 
 The verifier returns `VERIFIED` or a bounded numbered findings list naming the failed criterion, evidence, and required correction.
 
 ## Shared controls
 
-- Keep exactly one active main executor at a time. A permitted Tier 2 Luna-to-Terra handoff replaces Luna rather than adding a second active executor. Terra and Luna implementation reports each fit within **300 output tokens**, excluding raw command output stored in task-local files. Each report contains changed files, a concise summary, commands and exit status, self-review, and remaining concerns or `NONE`.
+- Keep exactly one active main executor at a time. Under `adaptive`, a permitted Tier 2 Luna-to-Terra handoff replaces Luna rather than adding a second active executor. Under `sol-luna`, no Terra handoff is reachable. Terra and Luna implementation reports each fit within **300 output tokens**, excluding raw command output stored in task-local files. Each report contains changed files, a concise summary, commands and exit status, self-review, and remaining concerns or `NONE`.
 - Exchange Scout, plan, and execution evidence through task-local files. Pass only relevant paths and compressed summaries between agents.
 - Sol reads compressed evidence and necessary files; it does not perform broad repository traversal, raw-log screening, routine coding, or ordinary test-failure repair loops.
 - If scope or risk crosses a higher-tier predicate, stop and upgrade before further edits. Never downgrade after editing starts.
@@ -145,7 +157,7 @@ When a named custom agent is unavailable, dispatch a fresh agent with the matchi
 - `sol_compact_planner`: `gpt-5.6-sol`, medium reasoning, read-only; the 400-token compact-plan contract.
 - `luna_scout`: `gpt-5.6-luna`, low reasoning, read-only; the 250-token discovery-evidence contract.
 - `terra_executor`: `gpt-5.6-terra`, medium reasoning, workspace-write; Tier 2 Terra-exception or Tier 3 execution, including a single evidence-preserving Luna handoff, with a 300-token report.
-- `luna_executor`: `gpt-5.6-luna`, medium reasoning, workspace-write; default bounded, explicit, independently verifiable Tier 2 execution with a stop-before-edit Terra-exception contract and a 300-token report.
+- `luna_executor`: `gpt-5.6-luna`, medium reasoning, workspace-write; default bounded, explicit, independently verifiable Tier 2 execution plus all Tier 2 and Tier 3 execution under `sol-luna`, with a profile-aware stop-before-edit contract and a 300-token report.
 - `luna_fast_executor`: `gpt-5.6-luna`, low reasoning, workspace-write; Tier 1 direct execution and self-verification contract with a 300-token report.
 
 Reuse the same main executor for correction rounds and preserve the selected tier's Scout, planning, execution, and verification rules.

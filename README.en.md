@@ -23,7 +23,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 2. The Skill preflights the task identity and emits a route like:
 
    ```text
-   Route: Tier 2 - bounded, testable change; Scout: no; Planner: compact; Executor: luna
+   Route: Tier 2 - bounded, testable change; Profile: adaptive; Scout: no; Planner: compact; Executor: luna
    ```
 
 3. Codex checkpoints routing, implementation, and verification. If the included usage window interrupts the run, it continues from the same thread, turn task, and Git root after reset instead of reconstructing progress from scratch.
@@ -57,13 +57,15 @@ Missing required context or an explicit opt-out returns `SKIPPED`. External or u
 
 ### 2. Make the fast executor the default
 
-`sol-luna-handoff` and `quota-aware-runner` share the same Luna-first v1.4.0 routing contract:
+`sol-luna-handoff` and `quota-aware-runner` share the same Luna-first v1.5.0 routing contract:
 
 - **Tier 1:** A small, explicit change goes straight to Luna for implementation and verification.
 - **Tier 2:** Bounded, explicit, independently verifiable work still defaults to Luna; compact Sol planning runs only when useful.
 - **Tier 3:** High-risk or ambiguous work involving security, architecture, deployment, or migration uses full Sol planning, Terra execution, and Sol review.
 
 Tier 2 moves to Terra only for six explicit exceptions: cross-subsystem or cross-file invariant derivation, shared-interface judgment, ambiguous root cause, integration uncertainty, major refactoring, or an unknown failure requiring non-local diagnosis. The handoff preserves the diff and check evidence, and each Tier 2 route permits at most one Luna-to-Terra switch.
+
+The execution profile is read from `$CODEX_HOME/sol-luna-handoff.json` and defaults to `adaptive` when the file is missing. The optional `sol-luna` profile retains optional compact Sol planning for Tier 2 and sends all Tier 2/3 execution to Luna; Tier 3 still has full Sol planning and mandatory Sol verification. Enable it atomically with the standalone repository's `install --profile sol-luna` command.
 
 ### 3. Connect routing, changes, and acceptance with checkpoints
 
@@ -109,7 +111,7 @@ npx skills add shangzhimingge/codex-workflow-skills --all
 
 `sol-luna-handoff` and `quota-aware-runner` check for six agents: `sol_planner`, `sol_compact_planner`, `luna_scout`, `terra_executor`, `luna_executor`, and `luna_fast_executor`. If any are missing, they run `scripts/install-agents.ps1` from the installed Skill directory.
 
-Both honor `CODEX_HOME` and check every conflict before writing. `sol-luna-handoff` idempotently maintains its managed block in global `AGENTS.md`; `quota-aware-runner` installs agents only and leaves global `AGENTS.md` untouched. New agents are usually selectable from the next task; the current task uses the bundled fallback contracts.
+Both honor `CODEX_HOME` and check every conflict before writing. `sol-luna-handoff` idempotently maintains its managed block in global `AGENTS.md` and the execution profile; `quota-aware-runner` installs agents only and leaves global `AGENTS.md` and profile state untouched. New agents are usually selectable from the next task; the current task uses the bundled fallback contracts.
 
 ## Local verification
 

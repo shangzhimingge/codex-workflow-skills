@@ -45,14 +45,17 @@ function Invoke-TestInstaller {
         [Parameter(Mandatory)]
         [string]$CodexHome,
 
-        [switch]$WhatIf
+        [switch]$WhatIf,
+
+        [ValidateSet('adaptive', 'sol-luna')]
+        [string]$Profile = 'adaptive'
     )
 
     $hadCodexHome = Test-Path Env:CODEX_HOME
     $previousCodexHome = $env:CODEX_HOME
     try {
         $env:CODEX_HOME = $CodexHome
-        & $installerPath -WhatIf:$WhatIf | Out-Null
+        & $installerPath -Profile $Profile -WhatIf:$WhatIf | Out-Null
     } finally {
         if ($hadCodexHome) {
             $env:CODEX_HOME = $previousCodexHome
@@ -147,7 +150,27 @@ function Test-FreshInstall {
         $globalContent = [System.IO.File]::ReadAllText((Join-Path $codexHome 'AGENTS.md'))
         Assert-True ($globalContent.Contains($startMarker)) 'fresh install must add the managed start marker'
         Assert-True ($globalContent.Contains($endMarker)) 'fresh install must add the managed end marker'
+        $profile = [System.IO.File]::ReadAllText((Join-Path $codexHome 'sol-luna-handoff.json')) | ConvertFrom-Json
+        Assert-True ($profile.schemaVersion -eq 1) 'fresh install must write profile schema 1'
+        Assert-True ($profile.executionProfile -ceq 'adaptive') 'fresh install must default to adaptive'
         Write-Output 'PASS fresh install copies agents and global block'
+    } finally {
+        Remove-Item -LiteralPath $codexHome -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Test-SolLunaProfileSwitch {
+    $codexHome = New-TemporaryCodexHome
+    try {
+        Invoke-TestInstaller $codexHome -Profile 'sol-luna'
+        $profilePath = Join-Path $codexHome 'sol-luna-handoff.json'
+        $profile = [System.IO.File]::ReadAllText($profilePath) | ConvertFrom-Json
+        Assert-True ($profile.executionProfile -ceq 'sol-luna') 'selected sol-luna profile must be persisted'
+
+        Invoke-TestInstaller $codexHome -Profile 'adaptive'
+        $profile = [System.IO.File]::ReadAllText($profilePath) | ConvertFrom-Json
+        Assert-True ($profile.executionProfile -ceq 'adaptive') 'recognized profile must switch atomically'
+        Write-Output 'PASS PowerShell installer switches the managed execution profile'
     } finally {
         Remove-Item -LiteralPath $codexHome -Recurse -Force -ErrorAction SilentlyContinue
     }
@@ -466,6 +489,7 @@ function Test-AdaptiveRoutingContracts {
     $tier2Index = $skill.IndexOf('Tier 2', $tier1Index + 'Tier 1'.Length)
     Assert-True ($tier3Index -lt $tier1Index -and $tier1Index -lt $tier2Index) 'routing order must be Tier 3 then Tier 1 then Tier 2'
     Assert-True ($skill.Contains('Scout: yes|no')) 'route line must expose the Scout decision'
+    Assert-True ($skill.Contains('Profile: adaptive|sol-luna')) 'route line must expose the execution profile'
     Assert-True ($skill.Contains('Planner: none|compact|full')) 'route line must expose the planner decision'
     Assert-True ($skill.Contains('Executor: luna|terra')) 'route line must expose the executor decision'
     $tierState = $skill.IndexOf('State 1 - classify Tier')
@@ -504,7 +528,9 @@ function Test-AdaptiveRoutingContracts {
     Assert-True ($skill.Contains('only one Luna-to-Terra executor switch')) 'Tier 2 must permit only one executor switch'
     Assert-True ($skill.Contains('correction count continues across the handoff')) 'correction count must survive the handoff'
     Assert-True ($skill.Contains('Tier 3 predicate remains a tier upgrade')) 'Tier 3 discovery must remain a tier upgrade'
-    Assert-True ($skill.Contains('Use `terra_executor` as the main executor for every Tier 3 task')) 'Tier 3 must use Terra as the main executor'
+    Assert-True ($skill.Contains('In the `adaptive` profile, Tier 3 uses `terra_executor`')) 'adaptive Tier 3 must use Terra as the main executor'
+    Assert-True ($skill.Contains('In the `sol-luna` profile, Tier 3 uses `luna_executor`')) 'sol-luna Tier 3 must use Luna as the main executor'
+    Assert-True ($skill.Contains('never select `terra_executor` while `sol-luna` is active')) 'sol-luna must have no Terra executor route'
     Assert-True ($skill.Contains('mandatory high-reasoning verification')) 'Tier 3 must require final Sol verification'
     Assert-True ($skill.Contains('300 output tokens')) 'executor reports must be capped at 300 output tokens'
     Assert-True ($skill.Contains('After 2 correction rounds')) 'two correction rounds must trigger replanning'
@@ -521,10 +547,10 @@ function Test-AdaptiveRoutingContracts {
     Assert-True ($globalRule.Contains('select the route')) 'global rule must delegate adaptive route selection'
     Assert-True (-not $globalRule.Contains('Route the work through Sol planning, Luna execution, and Sol verification')) 'global rule must not mandate the fixed pipeline'
     Assert-True ($interfaceMetadata.Contains('Terra/Luna Handoff')) 'interface metadata must name both execution lanes'
-    Assert-True ($interfaceMetadata.Contains('balanced Scout, planning, and execution routing')) 'interface metadata must describe balanced routing'
-    Assert-True ($interfaceMetadata.Contains('conditional Luna discovery')) 'interface prompt must request conditional discovery'
+    Assert-True ($interfaceMetadata.Contains('adaptive or Sol-to-Luna execution routing')) 'interface metadata must describe both profiles'
+    Assert-True ($interfaceMetadata.Contains('active execution profile')) 'interface prompt must request profile lookup'
     Assert-True ($interfaceMetadata.Contains('minimum necessary Sol planning')) 'interface prompt must request minimum necessary planning'
-    Assert-True ($interfaceMetadata.Contains('suitable Terra or Luna executor')) 'interface prompt must request a suitable executor lane'
+    Assert-True ($interfaceMetadata.Contains('adaptive Terra/Luna or Sol-to-Luna semantics')) 'interface prompt must request profile-specific execution'
     Assert-True (-not $interfaceMetadata.Contains('Sol planning, Luna execution, and Sol verification')) 'interface metadata must not mandate the fixed pipeline'
 
     $expectedAgents = @(
@@ -572,6 +598,7 @@ function Test-AdaptiveRoutingContracts {
 
 Test-DifferingAgentCollisions
 Test-FreshInstall
+Test-SolLunaProfileSwitch
 Test-AdaptiveRoutingContracts
 Test-V100Upgrade
 Test-V110Upgrade

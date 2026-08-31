@@ -23,7 +23,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 2. Skill 自动预检任务身份，并给出类似路线：
 
    ```text
-   Route: Tier 2 - bounded, testable change; Scout: no; Planner: compact; Executor: luna
+   Route: Tier 2 - bounded, testable change; Profile: adaptive; Scout: no; Planner: compact; Executor: luna
    ```
 
 3. Codex 记录路由、实施和验证检查点。若 included usage window 中断，窗口恢复后从同一 thread、同一 turn task 和同一 Git 根继续，而不是从头猜进度。
@@ -57,13 +57,15 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 
 ### 2. 让便宜、快速的执行器成为默认
 
-`sol-luna-handoff` 与 `quota-aware-runner` 使用相同的 Luna-first v1.4.0 路由：
+`sol-luna-handoff` 与 `quota-aware-runner` 使用相同的 Luna-first v1.5.0 路由：
 
 - **Tier 1：** 小而明确的改动，由 Luna 直接实施和验证。
 - **Tier 2：** 范围有界、策略明确、可独立验证时仍默认 Luna；需要时先由精简 Sol 规划。
 - **Tier 3：** 安全、架构、部署、迁移等高风险或高歧义任务，由完整 Sol 规划、Terra 执行、Sol 复核。
 
 Tier 2 只有在六类明确例外（six Terra exceptions）下才升级到 Terra：跨子系统/跨文件不变量推导、共享接口判断、根因不明、集成不确定、大型重构、需要非局部诊断的未知失败。升级前保留 diff 与检查证据；每条 Tier 2 路线最多一次 Luna→Terra handoff。
+
+执行配置从 `$CODEX_HOME/sol-luna-handoff.json` 读取，缺失时默认为 `adaptive`。可选的 `sol-luna` 配置保留 Tier 2 的可选 compact Sol 规划，并让 Tier 2/3 都由 Luna 执行；Tier 3 仍执行完整 Sol 规划和强制 Sol 验证。可通过独立仓库的 `install --profile sol-luna` 原子启用。
 
 ### 3. 用检查点把路线、改动和验收连起来
 
@@ -109,7 +111,7 @@ npx skills add shangzhimingge/codex-workflow-skills --all
 
 `sol-luna-handoff` 和 `quota-aware-runner` 会检查六个 Agent：`sol_planner`、`sol_compact_planner`、`luna_scout`、`terra_executor`、`luna_executor`、`luna_fast_executor`。缺失时，它们从已安装 Skill 目录运行 `scripts/install-agents.ps1`。
 
-两者都遵循 `CODEX_HOME`，并在写入前检查冲突。`sol-luna-handoff` 幂等维护自己的全局 `AGENTS.md` 托管块；`quota-aware-runner` 只安装 agents，不改全局 `AGENTS.md`。新 Agent 通常从下一个任务开始可选，当前任务使用内置 fallback contract。
+两者都遵循 `CODEX_HOME`，并在写入前检查冲突。`sol-luna-handoff` 幂等维护自己的全局 `AGENTS.md` 托管块与执行配置；`quota-aware-runner` 只安装 agents，不改全局 `AGENTS.md` 或配置。新 Agent 通常从下一个任务开始可选，当前任务使用内置 fallback contract。
 
 ## 本地验证
 
