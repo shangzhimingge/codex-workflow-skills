@@ -12,7 +12,7 @@ The repository is a skills.sh Skill Pack. Repository-root tooling supports devel
 
 ## Canonical and derived ownership
 
-`skills/codex-auto-resume` and `skills/sol-luna-handoff` are the canonical imported implementations. Their public names, entry points, state formats, routing contract, six agent definitions, and managed-block markers remain stable. The Sol–Luna tree is a complete byte-identical import of the upstream Skill pinned in `docs/upstream-provenance.json`.
+`skills/codex-auto-resume` and `skills/sol-luna-handoff` are the canonical imported implementations. Their public names, entry points, state formats, routing contract, six agent definitions, and managed-block markers remain stable. The Auto Resume tree matches its pinned upstream except for the recorded `SKILL.md` loaded-path adaptation; the Sol–Luna tree is a complete byte-identical import. Both pins are recorded in `docs/upstream-provenance.json`.
 
 `skills/quota-aware-runner` owns its `SKILL.md`, `agents/openai.yaml`, and agents-only `scripts/install-agents.ps1`. Its auto-resume runtime and six agent definitions are generated copies. `tools/sync-composite.py` is the sole supported way to refresh the derived files.
 
@@ -45,11 +45,11 @@ Each top-level Skill resolves runtime paths from the actual loaded `SKILL.md` di
 
 ## Updating upstream content
 
-1. Replace the appropriate canonical mirror with the complete pinned upstream Skill tree and update `docs/upstream-provenance.json`, including its deterministic tree digest.
+1. Replace the appropriate canonical mirror with the complete pinned upstream Skill tree and update `docs/upstream-provenance.json`, including its deterministic Git-index tree digest. For Auto Resume, apply only the recorded `SKILL.md` loaded-path adaptation after import.
 2. For Sol–Luna, replace the composite-owned routing tail from `## Deterministic routing` through EOF with the canonical routing tail.
 3. Run `python tools/sync-composite.py` to refresh derived runtime and agent assets.
 4. Run `python tools/sync-composite.py --check`, the provenance/routing-tail parity tests, the Python and PowerShell suites, and the skills.sh smoke tests.
-5. Review generated-file parity, the repository diff, and the unchanged `skills/codex-auto-resume` tree before release work.
+5. Review generated-file parity, the repository diff, and that the Auto Resume mirror matches the pinned upstream except for its recorded `SKILL.md` path adaptation before release work.
 
 ## Provenance and licensing
 

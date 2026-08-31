@@ -1,6 +1,6 @@
 # Codex Workflow Skills
 
-一个兼容优先的 skills.sh Skill Pack（Pack v1.1.0）：保留 `codex-auto-resume` 与 `sol-luna-handoff` 的公共名称，并提供可独立安装的组合 Skill `quota-aware-runner`。
+一个兼容优先的 skills.sh Skill Pack（Pack v1.2.0）：保留 `codex-auto-resume` 与 `sol-luna-handoff` 的公共名称，并提供可独立安装的组合 Skill `quota-aware-runner`。
 
 ## 安装
 
@@ -42,7 +42,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill quota-aware-runner
 
 | Skill | 用途 | 独立安装内容 |
 | --- | --- | --- |
-| `codex-auto-resume` | 在真实 ChatGPT 用量窗口重置后按精确线程 UUID 续作 | Python 标准库运行时、入口脚本、检查点与守护进程逻辑 |
+| `codex-auto-resume` | 在真实 ChatGPT 用量窗口重置后按精确线程 UUID 续作 | v1.3.0 Python 标准库运行时、入口脚本、检查点与守护进程逻辑 |
 | `sol-luna-handoff` | 按风险与范围确定性选择 Tier 1/2/3 及 Sol、Terra、Luna 路线 | 六个 Agent 定义、全局托管块、原子安装脚本 |
 | `quota-aware-runner` | 一次预检后路由，在实施与验证里程碑维护检查点 | 内嵌 Auto Resume 运行时与六 Agent bootstrap，不依赖同包其他 Skill |
 
@@ -60,7 +60,7 @@ Terra 只处理六类明确例外（six Terra exceptions）：跨子系统或跨
 
 ### Auto Resume 预检
 
-`codex-auto-resume` 每个任务只预检一次。只有可信会话元数据含精确、规范小写线程 UUID 且目标目录属于 Git 仓库时才注册；上下文缺失或显式 opt-out 返回 `SKIPPED`。运行时固定使用 `billing_policy=included_only`，并通过 Skill 自身目录解析全部脚本。
+内含 `codex-auto-resume v1.3.0`。它为每个用户 turn 与子代理 trigger turn 分别预检和注册，以实际线程、turn task 与 Git 根作为任务身份；daemon 可发现漏注册任务，并按叶子优先顺序恢复子代理与父任务。上下文缺失或显式 opt-out 返回 `SKIPPED`。运行时固定使用 `billing_policy=included_only`，并通过实际加载的 Skill 目录解析全部脚本。
 
 ### 组合顺序
 

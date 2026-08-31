@@ -12,7 +12,8 @@ AUTO = ROOT / "skills" / "codex-auto-resume"
 ROUTING_MARKER = "## Deterministic routing"
 SOL_COMMIT = "322d106facaccfb7f78d6a5b0f67f0b1c810f4ea"
 SOL_TREE_SHA256 = "164f8325b78527cf1aa0eff8427807cb2e8d8d84160df89f2e73504781e2986f"
-AUTO_TREE_SHA256 = "c04bca9d790984c25c1a53a86aa082f235ea0de1a2105edab7df230c68a7d529"
+AUTO_COMMIT = "bb2ab03851877f7ff7745dc7878552525add82d5"
+AUTO_TREE_SHA256 = "7fefb788e01f0c0242e6a40f0d0ebd35534d8599119a2b8335f69dd8c61ca9c8"
 CANONICAL_FILES = {
     "SKILL.md",
     "agents/openai.yaml",
@@ -137,13 +138,14 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertEqual(SOL_TREE_SHA256, sol["treeSha256"])
         auto = provenance["upstreams"]["codex-auto-resume"]
         self.assertEqual("https://github.com/shangzhimingge/codex-auto-resume", auto["repository"])
-        self.assertEqual("e7dae9d22bef339550dce7f9ea80c0a472b0beea", auto["commit"])
+        self.assertEqual(AUTO_COMMIT, auto["commit"])
         self.assertEqual("skill/codex-auto-resume", auto["sourcePath"])
         self.assertEqual("pack-path-adjusted", auto["mirrorMode"])
+        self.assertEqual("1.3.0", auto["skillVersion"])
         self.assertEqual(AUTO_TREE_SHA256, auto["treeSha256"])
-        self.assertEqual("1.2.1", (AUTO / "VERSION").read_text(encoding="utf-8").strip())
+        self.assertEqual(auto["skillVersion"], (AUTO / "VERSION").read_text(encoding="utf-8").strip())
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
-        self.assertEqual("1.1.0", package["version"])
+        self.assertEqual("1.2.0", package["version"])
 
     def test_docs_describe_luna_first_canonical_and_composite_parity(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
