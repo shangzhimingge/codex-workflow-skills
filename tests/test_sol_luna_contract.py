@@ -10,8 +10,8 @@ SOL = ROOT / "skills" / "sol-luna-handoff"
 COMPOSITE = ROOT / "skills" / "quota-aware-runner"
 AUTO = ROOT / "skills" / "codex-auto-resume"
 ROUTING_MARKER = "## Deterministic routing"
-SOL_COMMIT = "f755863bb21c1a31e15c47ca3d8a6c7ae5351ce5"
-SOL_TREE_SHA256 = "c70f678430dc685bdcf6ffb1b4682a37c6d1bdb77f7205a21b878c74d64b664f"
+SOL_COMMIT = "8d63158bf96f5bde011ad03abf75dee178f98e7a"
+SOL_TREE_SHA256 = "edc93a2d9cbcffcb577c457738437a7efbf28cfae5c38b6a7d1407358c3f4713"
 AUTO_COMMIT = "bb2ab03851877f7ff7745dc7878552525add82d5"
 AUTO_TREE_SHA256 = "7fefb788e01f0c0242e6a40f0d0ebd35534d8599119a2b8335f69dd8c61ca9c8"
 CANONICAL_FILES = {
@@ -126,6 +126,20 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertIn("do not request a Terra handoff", luna)
         self.assertIn("ValidateSet('adaptive', 'sol-luna')", installer)
         self.assertIn("sol-luna-handoff.json", installer)
+
+    def test_v140_agent_allowlist_covers_lf_and_crlf_exact_upgrades(self):
+        installer = (SOL / "scripts" / "install-agents.ps1").read_text(encoding="utf-8")
+        for digest in (
+            "0C229A4CECAAFB49E25F4692D135B13ADFBEDB29B49E0CF1370C0EA619C65F6E",
+            "05388D699131011FE00D09F7D9751EADD51473CDC1E6B9B2F8A944B3CC68DD15",
+            "0E28C2F9ADA075DBD227505BE63F7F2712D16DD9065056062CC1C524DA1C6FD5",
+            "4FEAE9C04F1D3D79F9D739F5850962B59EF8DFBB004B784EE69CC20932AE6D9D",
+            "71EAC578F0925EB11C358E2AD1C65A69BD784966A16A798DFBD05A71F97F87D3",
+            "49BAA5F4707F6F97117A106BC6380E63CD71D4A5EE79DE4257B9F0742D18C16A",
+            "0903CA65A7383DF809F0F35C628E6D83B799552F83FE2867B07C65609B238891",
+            "27C613C0ADA5C041EC073DE1DC54926DE80C949691D74C5D1836AFE88A7BF909",
+        ):
+            self.assertIn(digest, installer)
 
     def test_composite_routing_tail_and_agent_assets_match_canonical(self):
         canonical = (SOL / "SKILL.md").read_text(encoding="utf-8")
