@@ -48,19 +48,33 @@ function Invoke-TestInstaller {
         [switch]$WhatIf,
 
         [ValidateSet('adaptive', 'sol-luna')]
-        [string]$Profile = 'adaptive'
+        [string]$Profile = 'adaptive',
+
+        [string]$Fault = ''
     )
 
     $hadCodexHome = Test-Path Env:CODEX_HOME
     $previousCodexHome = $env:CODEX_HOME
+    $hadFault = Test-Path Env:SOL_LUNA_HANDOFF_TEST_FAULT
+    $previousFault = $env:SOL_LUNA_HANDOFF_TEST_FAULT
     try {
         $env:CODEX_HOME = $CodexHome
+        if ($Fault) {
+            $env:SOL_LUNA_HANDOFF_TEST_FAULT = $Fault
+        } else {
+            Remove-Item Env:SOL_LUNA_HANDOFF_TEST_FAULT -ErrorAction SilentlyContinue
+        }
         & $installerPath -Profile $Profile -WhatIf:$WhatIf | Out-Null
     } finally {
         if ($hadCodexHome) {
             $env:CODEX_HOME = $previousCodexHome
         } else {
             Remove-Item Env:CODEX_HOME -ErrorAction SilentlyContinue
+        }
+        if ($hadFault) {
+            $env:SOL_LUNA_HANDOFF_TEST_FAULT = $previousFault
+        } else {
+            Remove-Item Env:SOL_LUNA_HANDOFF_TEST_FAULT -ErrorAction SilentlyContinue
         }
     }
 }
@@ -171,6 +185,59 @@ function Test-SolLunaProfileSwitch {
         $profile = [System.IO.File]::ReadAllText($profilePath) | ConvertFrom-Json
         Assert-True ($profile.executionProfile -ceq 'adaptive') 'recognized profile must switch atomically'
         Write-Output 'PASS PowerShell installer switches the managed execution profile'
+    } finally {
+        Remove-Item -LiteralPath $codexHome -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Test-ProfileDirectoryCollisionAbortsBeforeMutation {
+    $codexHome = New-TemporaryCodexHome
+    try {
+        $profilePath = Join-Path $codexHome 'sol-luna-handoff.json'
+        [System.IO.Directory]::CreateDirectory($profilePath) | Out-Null
+        $before = Get-DirectoryState $codexHome
+        $caughtMessage = $null
+        try {
+            Invoke-TestInstaller $codexHome -Profile 'sol-luna'
+        } catch {
+            $caughtMessage = $_.Exception.Message
+        }
+
+        Assert-True ($null -ne $caughtMessage) 'a profile directory collision must abort installation'
+        Assert-True ($caughtMessage.Contains($profilePath)) 'the profile collision must name the path'
+        Assert-True ((Get-DirectoryState $codexHome) -ceq $before) 'profile directory collision must leave every file unchanged'
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path $codexHome 'agents'))) 'profile collision preflight must not create agents'
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path $codexHome 'AGENTS.md'))) 'profile collision preflight must not create AGENTS.md'
+        Write-Output 'PASS profile directory collision aborts before mutation'
+    } finally {
+        Remove-Item -LiteralPath $codexHome -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Test-PostWriteFailureRestoresExactSnapshot {
+    $codexHome = New-TemporaryCodexHome
+    try {
+        $globalPath = Join-Path $codexHome 'AGENTS.md'
+        $profilePath = Join-Path $codexHome 'sol-luna-handoff.json'
+        [System.IO.File]::WriteAllText($globalPath, "# Preserve exact global state`r`n", $utf8NoBom)
+        [System.IO.File]::WriteAllText(
+            $profilePath,
+            "{`n  `"schemaVersion`": 1,`n  `"executionProfile`": `"adaptive`"`n}`n",
+            $utf8NoBom
+        )
+        $before = Get-DirectoryState $codexHome
+        $caughtMessage = $null
+        try {
+            Invoke-TestInstaller $codexHome -Profile 'sol-luna' -Fault 'after-profile-write'
+        } catch {
+            $caughtMessage = $_.Exception.Message
+        }
+
+        Assert-True ($null -ne $caughtMessage) 'an injected post-write failure must abort installation'
+        Assert-True ($caughtMessage.Contains('after-profile-write')) 'the injected failure must identify its point'
+        Assert-True ((Get-DirectoryState $codexHome) -ceq $before) 'rollback must restore exact file hashes and timestamps'
+        Assert-True (-not (Test-Path -LiteralPath (Join-Path $codexHome 'agents'))) 'rollback must remove a newly created agents directory'
+        Write-Output 'PASS injected post-write failure restores the exact snapshot'
     } finally {
         Remove-Item -LiteralPath $codexHome -Recurse -Force -ErrorAction SilentlyContinue
     }
@@ -599,6 +666,8 @@ function Test-AdaptiveRoutingContracts {
 Test-DifferingAgentCollisions
 Test-FreshInstall
 Test-SolLunaProfileSwitch
+Test-ProfileDirectoryCollisionAbortsBeforeMutation
+Test-PostWriteFailureRestoresExactSnapshot
 Test-AdaptiveRoutingContracts
 Test-V100Upgrade
 Test-V110Upgrade

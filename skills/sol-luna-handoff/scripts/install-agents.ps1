@@ -138,7 +138,83 @@ function Write-BytesAtomically {
     }
 }
 
-$existingProfileConfigBytes = if ([System.IO.File]::Exists($profileConfigPath)) {
+function Test-RegularFileEntry {
+    param(
+        [Parameter(Mandatory)]
+        [System.IO.FileSystemInfo]$Entry
+    )
+
+    return $Entry -is [System.IO.FileInfo] -and
+        ($Entry.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -eq 0
+}
+
+function Get-FileSnapshot {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Path
+    )
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return [pscustomobject]@{ Exists = $false; Path = $Path }
+    }
+    $entry = Get-Item -LiteralPath $Path -Force
+    if (-not (Test-RegularFileEntry -Entry $entry)) {
+        throw "Snapshot target is not a regular file: $Path"
+    }
+    return [pscustomobject]@{
+        Exists = $true
+        Path = $Path
+        Bytes = [System.IO.File]::ReadAllBytes($Path)
+        Attributes = $entry.Attributes
+        CreationTimeUtc = $entry.CreationTimeUtc
+        LastAccessTimeUtc = $entry.LastAccessTimeUtc
+        LastWriteTimeUtc = $entry.LastWriteTimeUtc
+    }
+}
+
+function Restore-FileSnapshot {
+    param(
+        [Parameter(Mandatory)]
+        [pscustomobject]$Snapshot
+    )
+
+    if (-not $Snapshot.Exists) {
+        if (Test-Path -LiteralPath $Snapshot.Path) {
+            Remove-Item -LiteralPath $Snapshot.Path -Force
+        }
+        return
+    }
+    $directory = [System.IO.Path]::GetDirectoryName($Snapshot.Path)
+    if (-not [System.IO.Directory]::Exists($directory)) {
+        [System.IO.Directory]::CreateDirectory($directory) | Out-Null
+    }
+    [System.IO.File]::WriteAllBytes($Snapshot.Path, $Snapshot.Bytes)
+    [System.IO.File]::SetCreationTimeUtc($Snapshot.Path, $Snapshot.CreationTimeUtc)
+    [System.IO.File]::SetLastAccessTimeUtc($Snapshot.Path, $Snapshot.LastAccessTimeUtc)
+    [System.IO.File]::SetLastWriteTimeUtc($Snapshot.Path, $Snapshot.LastWriteTimeUtc)
+    [System.IO.File]::SetAttributes($Snapshot.Path, $Snapshot.Attributes)
+}
+
+function Invoke-TestFault {
+    param(
+        [Parameter(Mandatory)]
+        [string]$Point
+    )
+
+    if ($env:SOL_LUNA_HANDOFF_TEST_FAULT -ceq $Point) {
+        throw "Injected test fault: $Point"
+    }
+}
+
+$profileEntryExists = Test-Path -LiteralPath $profileConfigPath
+if ($profileEntryExists) {
+    $profileEntry = Get-Item -LiteralPath $profileConfigPath -Force
+    if (-not (Test-RegularFileEntry -Entry $profileEntry)) {
+        throw "Profile configuration collision: destination is not a regular file: $profileConfigPath"
+    }
+}
+
+$existingProfileConfigBytes = if ($profileEntryExists) {
     [System.IO.File]::ReadAllBytes($profileConfigPath)
 } else {
     $null
@@ -156,9 +232,14 @@ $agentInstallPlans = foreach ($fileName in $agentFiles) {
     $sourcePath = [System.IO.Path]::GetFullPath((Join-Path $sourceDirectory $fileName))
     $destinationPath = [System.IO.Path]::GetFullPath((Join-Path $agentsDirectory $fileName))
     $sourceBytes = [System.IO.File]::ReadAllBytes($sourcePath)
-    $needsWrite = -not [System.IO.File]::Exists($destinationPath)
+    $destinationExists = Test-Path -LiteralPath $destinationPath
+    $needsWrite = -not $destinationExists
 
-    if (-not $needsWrite) {
+    if ($destinationExists) {
+        $destinationEntry = Get-Item -LiteralPath $destinationPath -Force
+        if (-not (Test-RegularFileEntry -Entry $destinationEntry)) {
+            throw "Custom-agent collision: destination is not a regular file: $destinationPath"
+        }
         $destinationBytes = [System.IO.File]::ReadAllBytes($destinationPath)
         if (-not (Test-ByteArrayEqual -Left $sourceBytes -Right $destinationBytes)) {
             $destinationHash = Get-Sha256Hex -Bytes $destinationBytes
@@ -192,7 +273,14 @@ if ($managedStartMarkerCount -ne 1 -or
     throw "Managed global rule must contain exactly one complete marker-delimited block: $managedBlockPath"
 }
 
-$existingGlobalAgents = if ([System.IO.File]::Exists($globalAgentsPath)) {
+$globalEntryExists = Test-Path -LiteralPath $globalAgentsPath
+if ($globalEntryExists) {
+    $globalEntry = Get-Item -LiteralPath $globalAgentsPath -Force
+    if (-not (Test-RegularFileEntry -Entry $globalEntry)) {
+        throw "Managed global rule collision: destination is not a regular file: $globalAgentsPath"
+    }
+}
+$existingGlobalAgents = if ($globalEntryExists) {
     [System.IO.File]::ReadAllText($globalAgentsPath, $utf8Strict)
 } else {
     ''
@@ -230,32 +318,69 @@ if ($startMarkerCount -eq 0 -and $endMarkerCount -eq 0) {
 
 # All collision and marker validation is complete. Mutations begin here.
 $missingAgentFiles = @($agentInstallPlans | Where-Object { $_.NeedsWrite })
-if ($missingAgentFiles.Count -gt 0 -and
-    -not [System.IO.Directory]::Exists($agentsDirectory) -and
-    $PSCmdlet.ShouldProcess($agentsDirectory, 'Create custom-agent directory')) {
-    [System.IO.Directory]::CreateDirectory($agentsDirectory) | Out-Null
+$codexHomePath = [System.IO.Path]::GetFullPath($codexHome)
+$codexHomeExisted = [System.IO.Directory]::Exists($codexHomePath)
+$agentsDirectoryExisted = [System.IO.Directory]::Exists($agentsDirectory)
+$agentSnapshots = @{}
+foreach ($plan in $agentInstallPlans) {
+    $agentSnapshots[$plan.DestinationPath] = Get-FileSnapshot -Path $plan.DestinationPath
+}
+$globalSnapshot = Get-FileSnapshot -Path $globalAgentsPath
+$profileSnapshot = Get-FileSnapshot -Path $profileConfigPath
+
+try {
+    if ($missingAgentFiles.Count -gt 0 -and
+        -not [System.IO.Directory]::Exists($agentsDirectory) -and
+        $PSCmdlet.ShouldProcess($agentsDirectory, 'Create custom-agent directory')) {
+        [System.IO.Directory]::CreateDirectory($agentsDirectory) | Out-Null
+    }
+
+    foreach ($plan in $agentInstallPlans) {
+        if ($plan.NeedsWrite -and
+            $PSCmdlet.ShouldProcess($plan.DestinationPath, "Install custom agent from $($plan.SourcePath)")) {
+            Write-BytesAtomically -Path $plan.DestinationPath -Bytes $plan.SourceBytes
+        }
+    }
+    Invoke-TestFault -Point 'after-agent-writes'
+
+    if ($updatedGlobalAgents -cne $existingGlobalAgents -and
+        $PSCmdlet.ShouldProcess($globalAgentsPath, "Install managed global rule from $managedBlockPath")) {
+        Write-BytesAtomically -Path $globalAgentsPath -Bytes ($utf8NoBom.GetBytes($updatedGlobalAgents))
+    }
+    Invoke-TestFault -Point 'after-global-write'
+
+    if (($null -eq $existingProfileConfigBytes -or
+        -not (Test-ByteArrayEqual -Left $existingProfileConfigBytes -Right $profileConfigBytes)) -and
+        $PSCmdlet.ShouldProcess($profileConfigPath, "Install $Profile execution profile")) {
+        Write-BytesAtomically -Path $profileConfigPath -Bytes $profileConfigBytes
+    }
+    Invoke-TestFault -Point 'after-profile-write'
+} catch {
+    $installationError = $_
+    try {
+        Restore-FileSnapshot -Snapshot $profileSnapshot
+        Restore-FileSnapshot -Snapshot $globalSnapshot
+        foreach ($plan in $agentInstallPlans) {
+            Restore-FileSnapshot -Snapshot $agentSnapshots[$plan.DestinationPath]
+        }
+        if (-not $agentsDirectoryExisted -and
+            [System.IO.Directory]::Exists($agentsDirectory) -and
+            [System.IO.Directory]::GetFileSystemEntries($agentsDirectory).Count -eq 0) {
+            [System.IO.Directory]::Delete($agentsDirectory)
+        }
+        if (-not $codexHomeExisted -and
+            [System.IO.Directory]::Exists($codexHomePath) -and
+            [System.IO.Directory]::GetFileSystemEntries($codexHomePath).Count -eq 0) {
+            [System.IO.Directory]::Delete($codexHomePath)
+        }
+    } catch {
+        throw "Installation failed: $($installationError.Exception.Message); rollback failed: $($_.Exception.Message)"
+    }
+    throw $installationError
 }
 
 foreach ($plan in $agentInstallPlans) {
-    if ($plan.NeedsWrite -and
-        $PSCmdlet.ShouldProcess($plan.DestinationPath, "Install custom agent from $($plan.SourcePath)")) {
-        Write-BytesAtomically -Path $plan.DestinationPath -Bytes $plan.SourceBytes
-    }
-
     Write-Output $plan.DestinationPath
 }
-
-if ($updatedGlobalAgents -cne $existingGlobalAgents -and
-    $PSCmdlet.ShouldProcess($globalAgentsPath, "Install managed global rule from $managedBlockPath")) {
-    [System.IO.File]::WriteAllText($globalAgentsPath, $updatedGlobalAgents, $utf8NoBom)
-}
-
 Write-Output $globalAgentsPath
-
-if (($null -eq $existingProfileConfigBytes -or
-    -not (Test-ByteArrayEqual -Left $existingProfileConfigBytes -Right $profileConfigBytes)) -and
-    $PSCmdlet.ShouldProcess($profileConfigPath, "Install $Profile execution profile")) {
-    Write-BytesAtomically -Path $profileConfigPath -Bytes $profileConfigBytes
-}
-
 Write-Output $profileConfigPath
