@@ -13,7 +13,6 @@ ROUTING_MARKER = "## Deterministic routing"
 SOL_COMMIT = "322d106facaccfb7f78d6a5b0f67f0b1c810f4ea"
 SOL_TREE_SHA256 = "164f8325b78527cf1aa0eff8427807cb2e8d8d84160df89f2e73504781e2986f"
 AUTO_TREE_SHA256 = "c04bca9d790984c25c1a53a86aa082f235ea0de1a2105edab7df230c68a7d529"
-PACK_BASELINE = "4611555d7b0540ca32cfe4a03c5a734985b8804b"
 CANONICAL_FILES = {
     "SKILL.md",
     "agents/openai.yaml",
@@ -139,7 +138,10 @@ class SolLunaContractTests(unittest.TestCase):
         auto = provenance["upstreams"]["codex-auto-resume"]
         self.assertEqual("https://github.com/shangzhimingge/codex-auto-resume", auto["repository"])
         self.assertEqual("e7dae9d22bef339550dce7f9ea80c0a472b0beea", auto["commit"])
+        self.assertEqual("skill/codex-auto-resume", auto["sourcePath"])
+        self.assertEqual("pack-path-adjusted", auto["mirrorMode"])
         self.assertEqual(AUTO_TREE_SHA256, auto["treeSha256"])
+        self.assertEqual("1.2.1", (AUTO / "VERSION").read_text(encoding="utf-8").strip())
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         self.assertEqual("1.1.0", package["version"])
 
@@ -153,18 +155,8 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertIn("routing tail", design)
         self.assertIn("upstream-provenance.json", design)
 
-    def test_auto_resume_tree_stays_byte_identical(self):
+    def test_auto_resume_tree_matches_the_pinned_index_digest(self):
         self.assertEqual(AUTO_TREE_SHA256, git_index_tree_digest(AUTO))
-        result = subprocess.run(
-            ["git", "diff", "--name-only", PACK_BASELINE, "HEAD", "--", "skills/codex-auto-resume"],
-            cwd=ROOT,
-            text=True,
-            encoding="utf-8",
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        self.assertEqual(0, result.returncode, result.stderr)
-        self.assertEqual("", result.stdout.strip(), result.stdout)
 
 
 if __name__ == "__main__":
