@@ -12,8 +12,8 @@ AUTO = ROOT / "skills" / "codex-auto-resume"
 ROUTING_MARKER = "## Deterministic routing"
 SOL_COMMIT = "f59d7d14de6609000f339f826aef4b3869b98cd1"
 SOL_TREE_SHA256 = "4c4fc1fd9226d561aafb039891f0bb7706d25653f56326e1fd5377abfe547a06"
-AUTO_COMMIT = "bb2ab03851877f7ff7745dc7878552525add82d5"
-AUTO_TREE_SHA256 = "7fefb788e01f0c0242e6a40f0d0ebd35534d8599119a2b8335f69dd8c61ca9c8"
+AUTO_COMMIT = "f47343b3b132e3de8b131b23d7026d77e4c28e1c"
+AUTO_TREE_SHA256 = "5f4b360d5de2498373d295458db245adfbfc1a4d146da7759797f284c5244211"
 CANONICAL_FILES = {
     "SKILL.md",
     "agents/openai.yaml",
@@ -168,7 +168,7 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertEqual(AUTO_COMMIT, auto["commit"])
         self.assertEqual("skill/codex-auto-resume", auto["sourcePath"])
         self.assertEqual("pack-path-adjusted", auto["mirrorMode"])
-        self.assertEqual("1.3.0", auto["skillVersion"])
+        self.assertEqual("1.4.0", auto["skillVersion"])
         self.assertEqual(AUTO_TREE_SHA256, auto["treeSha256"])
         self.assertEqual(auto["skillVersion"], (AUTO / "VERSION").read_text(encoding="utf-8").strip())
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))

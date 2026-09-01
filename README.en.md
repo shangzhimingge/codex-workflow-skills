@@ -51,7 +51,7 @@ Each Skill installs independently. `quota-aware-runner` does not depend on the o
 
 ### 1. Exact resume instead of a vague re-prompt
 
-`codex-auto-resume` runs one preflight for every user turn and subagent trigger turn. Its registration key is `actual_thread_id + task_id + git_root`. After the daemon detects a usage-limit interruption, the task enters `WAITING_RESET`; when the window returns, child and parent tasks resume in leaf-first order. Runtime billing remains fixed to `billing_policy=included_only`.
+`codex-auto-resume` runs one preflight for every user turn and subagent trigger turn. Its registration key is `actual_thread_id + task_id + git_root`. A shared daemon starts on demand only after an eligible preflight registers or reuses a task; on Windows it launches hidden and detached instead of opening a startup CMD window. After the daemon detects a usage-limit interruption, the task enters `WAITING_RESET`; when the window returns, child and parent tasks resume in leaf-first order. Runtime billing remains fixed to `billing_policy=included_only`.
 
 Missing required context or an explicit opt-out returns `SKIPPED`. External or unrelated Git changes made while waiting move the task to `NEEDS_USER`, preventing an old checkpoint from being applied to new code.
 

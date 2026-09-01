@@ -37,7 +37,7 @@ The composite-owned `SKILL.md` keeps its quota/preflight/checkpoint prefix, but 
 4. checkpoint after routing, implementation, and fresh verification;
 5. set `AUTO_RESUME_STATUS=DONE` only after every acceptance criterion has fresh evidence.
 
-Missing trusted thread metadata or a non-Git project produces the canonical `SKIPPED` preflight outcome and does not prevent routing.
+Missing trusted thread metadata or a non-Git project produces the canonical `SKIPPED` preflight outcome and does not prevent routing. The shared Auto Resume daemon starts on demand only after a qualified registration or reuse; Windows uses hidden, detached process creation, and `--no-start` suppresses both watchdog and daemon startup.
 
 ## Isolated installs
 

@@ -51,7 +51,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 
 ### 1. 精确续作，不靠模糊提示
 
-`codex-auto-resume` 为每个用户 turn 和子代理 trigger turn 各执行一次预检，以 `actual_thread_id + task_id + git_root` 作为注册键。daemon 发现用量限制中断后进入 `WAITING_RESET`，窗口恢复时按叶子优先顺序继续子代理与父任务。运行时固定为 `billing_policy=included_only`。
+`codex-auto-resume` 为每个用户 turn 和子代理 trigger turn 各执行一次预检，以 `actual_thread_id + task_id + git_root` 作为注册键。共享 daemon 只在合格预检注册或复用任务后按需启动；Windows 会以隐藏、脱离终端的方式运行，不再通过开机 CMD 窗口启动。daemon 发现用量限制中断后进入 `WAITING_RESET`，窗口恢复时按叶子优先顺序继续子代理与父任务。运行时固定为 `billing_policy=included_only`。
 
 缺少必要上下文或显式 opt-out 时返回 `SKIPPED`；等待期间出现外部或不同谱系的 Git 变更时进入 `NEEDS_USER`，避免把旧检查点应用到新代码。
 
