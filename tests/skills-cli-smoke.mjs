@@ -57,6 +57,7 @@ function assertLunaFirstCopy(installed, skill) {
   assert.match(skillText, /only one Luna-to-Terra executor switch/, `${skill}: single-handoff marker`);
   assert.doesNotMatch(skillText, /Choose `terra_executor` for every other Tier 2 task/, `${skill}: no catch-all Terra`);
   assert.match(skillText, /Profile: adaptive\|sol-luna/, `${skill}: profile route field`);
+  assert.match(skillText, /missing configuration as `sol-luna`/i, `${skill}: default profile marker`);
   assert.match(skillText, /Tier 2 and Tier 3 always select `luna_executor`/, `${skill}: Sol-Luna executor contract`);
   assert.match(skillText, /mandatory high-reasoning verification/, `${skill}: Tier 3 Sol verification`);
   for (const name of ["luna-executor.toml", "terra-executor.toml"]) {

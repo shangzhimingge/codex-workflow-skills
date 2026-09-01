@@ -10,8 +10,8 @@ SOL = ROOT / "skills" / "sol-luna-handoff"
 COMPOSITE = ROOT / "skills" / "quota-aware-runner"
 AUTO = ROOT / "skills" / "codex-auto-resume"
 ROUTING_MARKER = "## Deterministic routing"
-SOL_COMMIT = "f59d7d14de6609000f339f826aef4b3869b98cd1"
-SOL_TREE_SHA256 = "4c4fc1fd9226d561aafb039891f0bb7706d25653f56326e1fd5377abfe547a06"
+SOL_COMMIT = "17f01bd1250c9ed719a44a838b64172a32ba24da"
+SOL_TREE_SHA256 = "7433d000650a6bc5c605d579243bedce99a0dda135867cb110d6d12b4b9efe6c"
 AUTO_COMMIT = "f47343b3b132e3de8b131b23d7026d77e4c28e1c"
 AUTO_TREE_SHA256 = "5f4b360d5de2498373d295458db245adfbfc1a4d146da7759797f284c5244211"
 CANONICAL_FILES = {
@@ -114,7 +114,7 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertIn("Luna report, current diff, and check evidence", terra)
         self.assertIn("remain the same executor", terra)
 
-    def test_optional_sol_luna_profile_is_closed_and_preserves_sol_review(self):
+    def test_default_sol_luna_profile_is_closed_and_preserves_sol_review(self):
         skill = (SOL / "SKILL.md").read_text(encoding="utf-8")
         luna = (SOL / "assets" / "luna-executor.toml").read_text(encoding="utf-8")
         installer = (SOL / "scripts" / "install-agents.ps1").read_text(encoding="utf-8")
@@ -125,7 +125,9 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertIn("never select `terra_executor` while `sol-luna` is active", skill)
         self.assertIn("do not request a Terra handoff", luna)
         self.assertIn("ValidateSet('adaptive', 'sol-luna')", installer)
+        self.assertIn("[string]$Profile = 'sol-luna'", installer)
         self.assertIn("sol-luna-handoff.json", installer)
+        self.assertIn("missing configuration as `sol-luna`, the default profile", skill)
 
     def test_v140_agent_allowlist_covers_lf_and_crlf_exact_upgrades(self):
         installer = (SOL / "scripts" / "install-agents.ps1").read_text(encoding="utf-8")
@@ -161,7 +163,7 @@ class SolLunaContractTests(unittest.TestCase):
         sol = provenance["upstreams"]["sol-luna-handoff"]
         self.assertEqual("https://github.com/shangzhimingge/sol-luna-handoff", sol["repository"])
         self.assertEqual(SOL_COMMIT, sol["commit"])
-        self.assertEqual("1.5.0", sol["skillVersion"])
+        self.assertEqual("1.6.0", sol["skillVersion"])
         self.assertEqual(SOL_TREE_SHA256, sol["treeSha256"])
         auto = provenance["upstreams"]["codex-auto-resume"]
         self.assertEqual("https://github.com/shangzhimingge/codex-auto-resume", auto["repository"])
@@ -172,16 +174,20 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertEqual(AUTO_TREE_SHA256, auto["treeSha256"])
         self.assertEqual(auto["skillVersion"], (AUTO / "VERSION").read_text(encoding="utf-8").strip())
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
-        self.assertEqual("1.3.0", package["version"])
+        self.assertEqual("1.4.0", package["version"])
 
     def test_docs_describe_luna_first_canonical_and_composite_parity(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        english = (ROOT / "README.en.md").read_text(encoding="utf-8")
         design = (ROOT / "docs" / "design.md").read_text(encoding="utf-8")
-        for text in (readme, design):
+        for text in (readme, english, design):
             self.assertIn("Luna-first", text)
-            self.assertIn("1.5.0", text)
+            self.assertIn("1.6.0", text)
             self.assertIn("six Terra exceptions", text)
             self.assertIn("sol-luna", text)
+        for text in (readme[:1800], english[:1800]):
+            self.assertIn("sol-luna", text)
+            self.assertIn("--profile adaptive", text)
         self.assertIn("routing tail", design)
         self.assertIn("upstream-provenance.json", design)
 

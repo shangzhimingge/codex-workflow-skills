@@ -2,6 +2,8 @@
 
 **The problem it solves:** Long tasks interrupted by a ChatGPT usage window force you to remember progress and re-prompt. Complex tasks also tend to use one agent for both planning and execution, wasting reasoning budget and weakening verification. This pack adds **exact resume, risk-based routing, and milestone checkpoints** to Codex.
 
+> **Default routing: Sol plans and verifies; Luna executes.** The `sol-luna` profile is used when no configuration file exists. Terra routing is available only after explicitly selecting `adaptive` with `install --profile adaptive` from the standalone `sol-luna-handoff` repository.
+
 [中文](README.md) · [English](README.en.md)
 
 ## Install in one command
@@ -23,7 +25,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 2. The Skill preflights the task identity and emits a route like:
 
    ```text
-   Route: Tier 2 - bounded, testable change; Profile: adaptive; Scout: no; Planner: compact; Executor: luna
+   Route: Tier 2 - bounded, testable change; Profile: sol-luna; Scout: no; Planner: compact; Executor: luna
    ```
 
 3. Codex checkpoints routing, implementation, and verification. If the included usage window interrupts the run, it continues from the same thread, turn task, and Git root after reset instead of reconstructing progress from scratch.
@@ -57,15 +59,15 @@ Missing required context or an explicit opt-out returns `SKIPPED`. External or u
 
 ### 2. Make the fast executor the default
 
-`sol-luna-handoff` and `quota-aware-runner` share the same Luna-first v1.5.0 routing contract:
+`sol-luna-handoff` and `quota-aware-runner` share the same Luna-first v1.6.0 routing contract:
 
 - **Tier 1:** A small, explicit change goes straight to Luna for implementation and verification.
 - **Tier 2:** Bounded, explicit, independently verifiable work still defaults to Luna; compact Sol planning runs only when useful.
-- **Tier 3:** High-risk or ambiguous work involving security, architecture, deployment, or migration uses full Sol planning, Terra execution, and Sol review.
+- **Tier 3:** High-risk or ambiguous work keeps full Sol planning and Sol review, with Luna executing by default.
 
 Tier 2 moves to Terra only for six explicit exceptions: cross-subsystem or cross-file invariant derivation, shared-interface judgment, ambiguous root cause, integration uncertainty, major refactoring, or an unknown failure requiring non-local diagnosis. The handoff preserves the diff and check evidence, and each Tier 2 route permits at most one Luna-to-Terra switch.
 
-The execution profile is read from `$CODEX_HOME/sol-luna-handoff.json` and defaults to `adaptive` when the file is missing. The optional `sol-luna` profile retains optional compact Sol planning for Tier 2 and sends all Tier 2/3 execution to Luna; Tier 3 still has full Sol planning and mandatory Sol verification. Enable it atomically with the standalone repository's `install --profile sol-luna` command.
+The execution profile is read from `$CODEX_HOME/sol-luna-handoff.json` and defaults to `sol-luna` when the file is missing. This default retains optional compact Sol planning for Tier 2 and sends all Tier 2/3 execution to Luna; Tier 3 still has full Sol planning and mandatory Sol verification. To enable the six Terra exceptions and Terra-backed Tier 3 route, explicitly run the standalone repository's `install --profile adaptive` command.
 
 ### 3. Connect routing, changes, and acceptance with checkpoints
 

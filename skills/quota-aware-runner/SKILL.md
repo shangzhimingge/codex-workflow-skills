@@ -19,7 +19,7 @@ When the user opts out, run `python "$SKILL_ROOT/scripts/preflight.py" --opt-out
 
 ## 2. Bootstrap and route
 
-Read `$CODEX_HOME/sol-luna-handoff.json`, where `CODEX_HOME` defaults to `~/.codex`. Accept schemaVersion `1` with executionProfile `adaptive` or `sol-luna`, record it as the active profile, and treat a missing configuration as `adaptive`. If an existing document is malformed or unsupported, return `NEEDS_CONTEXT` with the exact configuration problem before routing.
+Read `$CODEX_HOME/sol-luna-handoff.json`, where `CODEX_HOME` defaults to `~/.codex`. Accept schemaVersion `1` with executionProfile `adaptive` or `sol-luna`, record it as the active profile, and treat a missing configuration as `sol-luna`, the default profile. A valid persisted `adaptive` remains authoritative. If an existing document is malformed or unsupported, return `NEEDS_CONTEXT` with the exact configuration problem before routing.
 
 Check for `sol_planner`, `sol_compact_planner`, `luna_scout`, `terra_executor`, `luna_executor`, and `luna_fast_executor`. If any is unavailable, run the agents-only bootstrap `& "$SKILL_ROOT/scripts/install-agents.ps1"`; it installs or reuses the six definitions and never writes global `AGENTS.md` or the execution-profile configuration. Until a new task exposes them, use the fallback contracts below. Then apply the complete bundled deterministic routing contract in this document and emit its single profile-aware final route line.
 

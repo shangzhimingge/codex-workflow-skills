@@ -25,14 +25,14 @@ The sync tool copies bytes without text normalization:
 
 Generated trees contain no `SKILL.md`, and tests require byte parity with the canonical source. The composite's pack-owned bootstrap installs or reuses only the six byte-identical Agent TOMLs. It never reads or writes global `AGENTS.md`, so it neither installs a dangling `$sol-luna-handoff` activation rule nor competes for the canonical `SOL-LUNA-HANDOFF` managed block. `python tools/sync-composite.py --check` fails when a generated file is missing, stale, or unexpected.
 
-The composite-owned `SKILL.md` keeps its quota/preflight/checkpoint prefix, but its routing tail from `## Deterministic routing` through EOF must exactly equal the canonical Sol–Luna routing tail. This gives the standalone and composite Skills the same Luna-first 1.5.0 boundary. The default `adaptive` profile keeps bounded, explicit, independently verifiable work on Luna and permits only the closed six Terra exceptions to select Terra directly, with one evidence-preserving Luna→Terra handoff per Tier 2 routing pass. The optional `sol-luna` profile sends Tier 2 and Tier 3 execution to Luna while preserving full Sol planning and mandatory Sol verification for Tier 3.
+The composite-owned `SKILL.md` keeps its quota/preflight/checkpoint prefix, but its routing tail from `## Deterministic routing` through EOF must exactly equal the canonical Sol–Luna routing tail. This gives the standalone and composite Skills the same Luna-first 1.6.0 boundary. The default `sol-luna` profile sends Tier 2 and Tier 3 execution to Luna while preserving full Sol planning and mandatory Sol verification for Tier 3. The explicit `adaptive` profile keeps bounded, explicit, independently verifiable work on Luna and permits only the closed six Terra exceptions to select Terra directly, with one evidence-preserving Luna→Terra handoff per Tier 2 routing pass.
 
 ## Activation order
 
 `quota-aware-runner` has one ordered contract:
 
 1. call its bundled auto-resume preflight exactly once with the untouched original goal;
-2. read the shared execution profile, defaulting a missing configuration to `adaptive`, then bootstrap only the six custom agents when any definition is unavailable, without global activation or profile changes;
+2. read the shared execution profile, defaulting a missing configuration to `sol-luna` while honoring a persisted `adaptive`, then bootstrap only the six custom agents when any definition is unavailable, without global activation or profile changes;
 3. apply the bundled Sol–Luna deterministic routing contract;
 4. checkpoint after routing, implementation, and fresh verification;
 5. set `AUTO_RESUME_STATUS=DONE` only after every acceptance criterion has fresh evidence.

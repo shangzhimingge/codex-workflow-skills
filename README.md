@@ -2,6 +2,8 @@
 
 **它解决什么问题：** 长任务被 ChatGPT 用量窗口打断后要靠人记住进度、重新提示；复杂任务又常把规划和执行交给同一个 Agent，既浪费推理预算，也缺少稳定验收。本包把**精确续作、按风险路由、里程碑检查点**装进 Codex。
 
+> **默认路由：Sol 负责规划与复核，Luna 负责执行。** 配置文件缺失时使用 `sol-luna`。只有通过独立 `sol-luna-handoff` 仓库显式执行 `install --profile adaptive` 才会启用 Terra 路由。
+
 [中文](README.md) · [English](README.en.md)
 
 ## 一句话安装
@@ -23,7 +25,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 2. Skill 自动预检任务身份，并给出类似路线：
 
    ```text
-   Route: Tier 2 - bounded, testable change; Profile: adaptive; Scout: no; Planner: compact; Executor: luna
+   Route: Tier 2 - bounded, testable change; Profile: sol-luna; Scout: no; Planner: compact; Executor: luna
    ```
 
 3. Codex 记录路由、实施和验证检查点。若 included usage window 中断，窗口恢复后从同一 thread、同一 turn task 和同一 Git 根继续，而不是从头猜进度。
@@ -57,15 +59,15 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 
 ### 2. 让便宜、快速的执行器成为默认
 
-`sol-luna-handoff` 与 `quota-aware-runner` 使用相同的 Luna-first v1.5.0 路由：
+`sol-luna-handoff` 与 `quota-aware-runner` 使用相同的 Luna-first v1.6.0 路由：
 
 - **Tier 1：** 小而明确的改动，由 Luna 直接实施和验证。
 - **Tier 2：** 范围有界、策略明确、可独立验证时仍默认 Luna；需要时先由精简 Sol 规划。
-- **Tier 3：** 安全、架构、部署、迁移等高风险或高歧义任务，由完整 Sol 规划、Terra 执行、Sol 复核。
+- **Tier 3：** 安全、架构、部署、迁移等高风险或高歧义任务仍保留完整 Sol 规划与复核，默认由 Luna 执行。
 
 Tier 2 只有在六类明确例外（six Terra exceptions）下才升级到 Terra：跨子系统/跨文件不变量推导、共享接口判断、根因不明、集成不确定、大型重构、需要非局部诊断的未知失败。升级前保留 diff 与检查证据；每条 Tier 2 路线最多一次 Luna→Terra handoff。
 
-执行配置从 `$CODEX_HOME/sol-luna-handoff.json` 读取，缺失时默认为 `adaptive`。可选的 `sol-luna` 配置保留 Tier 2 的可选 compact Sol 规划，并让 Tier 2/3 都由 Luna 执行；Tier 3 仍执行完整 Sol 规划和强制 Sol 验证。可通过独立仓库的 `install --profile sol-luna` 原子启用。
+执行配置从 `$CODEX_HOME/sol-luna-handoff.json` 读取，缺失时默认为 `sol-luna`。该默认配置保留 Tier 2 的可选 compact Sol 规划，并让 Tier 2/3 都由 Luna 执行；Tier 3 仍执行完整 Sol 规划和强制 Sol 验证。如需启用六类 Terra 例外与 Terra Tier 3 路由，请通过独立仓库显式执行 `install --profile adaptive`。
 
 ### 3. 用检查点把路线、改动和验收连起来
 

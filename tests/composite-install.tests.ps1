@@ -45,8 +45,9 @@ try {
         throw 'composite must carry the Luna-first Tier 2 contract'
     }
     if (-not $compositeSkill.Contains('Profile: adaptive|sol-luna') -or
+        -not $compositeSkill.Contains('missing configuration as `sol-luna`') -or
         -not $compositeSkill.Contains('Tier 2 and Tier 3 always select `luna_executor`')) {
-        throw 'composite must carry the optional Sol-Luna profile contract'
+        throw 'composite must carry the default Sol-Luna profile contract'
     }
     foreach ($name in $agentNames) {
         $canonicalAsset = Join-Path $root "skills\sol-luna-handoff\assets\$name"

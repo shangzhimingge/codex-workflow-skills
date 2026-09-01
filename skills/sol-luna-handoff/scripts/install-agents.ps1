@@ -1,7 +1,7 @@
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
     [ValidateSet('adaptive', 'sol-luna')]
-    [string]$Profile = 'adaptive'
+    [string]$Profile = 'sol-luna'
 )
 
 $ErrorActionPreference = 'Stop'

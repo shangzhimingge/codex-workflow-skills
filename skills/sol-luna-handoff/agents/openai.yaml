@@ -1,4 +1,4 @@
 interface:
   display_name: "Sol → Terra/Luna Handoff"
-  short_description: "Use adaptive or Sol-to-Luna execution routing."
-  default_prompt: "Use $sol-luna-handoff to read the active execution profile, choose conditional Luna discovery and the minimum necessary Sol planning, then route execution through adaptive Terra/Luna or Sol-to-Luna semantics."
+  short_description: "Default Sol planning with Luna execution; adaptive is explicit."
+  default_prompt: "Use $sol-luna-handoff with Sol-to-Luna as the default execution profile. Read any persisted profile, choose conditional Luna discovery and the minimum necessary Sol planning, and use adaptive Terra/Luna routing only when adaptive was explicitly selected."

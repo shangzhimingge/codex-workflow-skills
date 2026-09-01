@@ -9,7 +9,7 @@ Select the least costly route that satisfies the task's scope and risk, then adv
 
 ## Preflight
 
-1. Read `$CODEX_HOME/sol-luna-handoff.json`, where `CODEX_HOME` defaults to `~/.codex`. Accept schemaVersion `1` with executionProfile `adaptive` or `sol-luna`. Treat a missing configuration as `adaptive`; if an existing document is malformed or unsupported, return `NEEDS_CONTEXT` with the exact configuration problem before routing.
+1. Read `$CODEX_HOME/sol-luna-handoff.json`, where `CODEX_HOME` defaults to `~/.codex`. Accept schemaVersion `1` with executionProfile `adaptive` or `sol-luna`. Treat a missing configuration as `sol-luna`, the default profile; if an existing document is malformed or unsupported, return `NEEDS_CONTEXT` with the exact configuration problem before routing. A valid persisted `adaptive` profile remains authoritative until an installation explicitly selects another profile.
 2. Record the selected value as the active profile for the whole routing pass.
 3. Check whether `sol_planner`, `sol_compact_planner`, `luna_scout`, `terra_executor`, `luna_executor`, and `luna_fast_executor` are selectable.
 4. If any are absent, run `scripts/install-agents.ps1 -Profile <active-profile>` from this Skill directory. Newly installed agents may require a fresh task to become selectable; until then, use the fallback contracts below.
