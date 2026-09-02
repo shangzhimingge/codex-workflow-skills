@@ -28,7 +28,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
    Route: Tier 2 - bounded, testable change; Profile: sol-luna; Scout: no; Planner: compact; Executor: luna
    ```
 
-3. Codex 记录路由、实施和验证检查点。若 included usage window 中断，窗口恢复后从同一 thread、同一 turn task 和同一 Git 根继续，而不是从头猜进度。
+3. Codex 记录路由、实施和验证检查点。若 included usage window 中断，窗口恢复后从同一 thread、同一 turn task 和同一工作区继续，而不是从头猜进度。
 
 ## 使用前后对比
 
@@ -43,7 +43,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 
 | Skill | 一句话定位 | 适合何时安装 |
 | --- | --- | --- |
-| `codex-auto-resume` | **用量窗口重置后，继续正确的 Codex 任务。** 按真实 thread UUID、turn task 与 Git 根注册，维护 daemon、watchdog 与检查点。 | 只需要自动续作，不需要 Agent 路由 |
+| `codex-auto-resume` | **用量窗口重置后，继续正确的 Codex 任务。** 按真实 thread UUID、turn task 与 Git、普通目录或托管工作区注册，维护 daemon、watchdog 与检查点。 | 只需要自动续作，不需要 Agent 路由 |
 | `sol-luna-handoff` | **让 Sol 规划，让 Luna 快速执行，必要时才交给 Terra。** 按范围和风险确定性选择 Tier 1/2/3。 | 只需要规划/执行分工，不需要自动续作 |
 | `quota-aware-runner` | **一次安装，把续作、路由、检查点和最终验证串起来。** 自带 Auto Resume 运行时和六个 Agent 定义。 | 希望开箱即用的完整工作流 |
 
@@ -53,9 +53,9 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 
 ### 1. 精确续作，不靠模糊提示
 
-`codex-auto-resume` 为每个用户 turn 和子代理 trigger turn 各执行一次预检，以 `actual_thread_id + task_id + git_root` 作为注册键。共享 daemon 只在合格预检注册或复用任务后按需启动；Windows 会以隐藏、脱离终端的方式运行，不再通过开机 CMD 窗口启动。daemon 发现用量限制中断后进入 `WAITING_RESET`，窗口恢复时按叶子优先顺序继续子代理与父任务。运行时固定为 `billing_policy=included_only`。
+`codex-auto-resume` v1.5.0 为每个用户 turn、自动恢复 turn 和子代理 trigger turn 各执行一次预检，问题咨询和非 Git 工作同样覆盖。注册键为 `actual_thread_id + task_id + workspace_root`；工作区可解析为 Git 根、普通目录或每 thread 托管目录。共享 daemon 只在合格预检注册或复用任务后按需启动；Windows 会以隐藏、脱离终端的方式运行，不再通过开机 CMD 窗口启动。daemon 发现用量限制中断后进入 `WAITING_RESET`，窗口恢复时按叶子优先顺序继续子代理与父任务。运行时固定为 `billing_policy=included_only`。
 
-缺少必要上下文或显式 opt-out 时返回 `SKIPPED`；等待期间出现外部或不同谱系的 Git 变更时进入 `NEEDS_USER`，避免把旧检查点应用到新代码。
+身份缺失或冲突、显式 opt-out 或运行环境损坏时返回 `SKIPPED`。普通目录与托管工作区的快照只记录规范根目录和目录身份，不递归读取内容；Git 工作区继续使用可感知变更的快照。
 
 ### 2. 让便宜、快速的执行器成为默认
 

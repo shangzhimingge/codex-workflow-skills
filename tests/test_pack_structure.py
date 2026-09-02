@@ -66,6 +66,9 @@ class PackStructureTests(unittest.TestCase):
 
     def test_composite_contract_order_and_isolated_preflight(self):
         skill = (SKILLS / "quota-aware-runner" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("automatic resume turn", skill)
+        self.assertIn("non-Git work", skill)
+        self.assertIn("directory, or managed workspace", skill)
         self.assertIn("## Bundled Sol–Luna routing contract", skill)
         installer = (SKILLS / "quota-aware-runner" / "scripts" / "install-agents.ps1").read_text(encoding="utf-8")
         self.assertNotIn("BEGIN SOL-LUNA-HANDOFF MANAGED BLOCK", installer)

@@ -9,13 +9,13 @@ Run this ordered contract from this installed Skill directory (`SKILL_ROOT`). Do
 
 ## 1. Run preflight exactly once
 
-Before other substantive work, invoke the bundled preflight once and only once. When trusted metadata provides the exact canonical lowercase thread UUID and the current project is a Git repository, run:
+Before other substantive work, invoke the bundled preflight once and only once for every user turn, automatic resume turn, and subagent trigger turn, including questions and non-Git work. Let trusted environment and rollout metadata resolve the exact thread, task, lineage, and Git, directory, or managed workspace:
 
 ```powershell
-python "$SKILL_ROOT/scripts/preflight.py" --thread-id "$THREAD_ID" --project "$PROJECT" --goal "$ORIGINAL_GOAL"
+python "$SKILL_ROOT/scripts/preflight.py" --goal "$ORIGINAL_GOAL"
 ```
 
-When the user opts out, run `python "$SKILL_ROOT/scripts/preflight.py" --opt-out`. When any required context is missing, omit only the missing arguments, include `--goal "$ORIGINAL_GOAL"`, and accept `SKIPPED` without prompting or guessing. Save a returned `job_id` as `JOB_ID`. Always retain the canonical `billing_policy=included_only`; never consume credits or use API-key billing as a fallback.
+When the user opts out, run `python "$SKILL_ROOT/scripts/preflight.py" --opt-out`. Accept `SKIPPED` for missing or conflicting identity, explicit opt-out, or damaged runtime without prompting or guessing. Save a returned `job_id` as `JOB_ID`. Always retain the canonical `billing_policy=included_only`; never consume credits or use API-key billing as a fallback.
 
 ## 2. Bootstrap and route
 

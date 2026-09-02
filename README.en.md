@@ -28,7 +28,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
    Route: Tier 2 - bounded, testable change; Profile: sol-luna; Scout: no; Planner: compact; Executor: luna
    ```
 
-3. Codex checkpoints routing, implementation, and verification. If the included usage window interrupts the run, it continues from the same thread, turn task, and Git root after reset instead of reconstructing progress from scratch.
+3. Codex checkpoints routing, implementation, and verification. If the included usage window interrupts the run, it continues from the same thread, turn task, and workspace after reset instead of reconstructing progress from scratch.
 
 ## Before and after
 
@@ -43,7 +43,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 
 | Skill | Product promise | Install it when |
 | --- | --- | --- |
-| `codex-auto-resume` | **Continue the right Codex task after a usage-window reset.** Registers the real thread UUID, turn task, and Git root, with a daemon, watchdog, and checkpoints. | You need resume without agent routing |
+| `codex-auto-resume` | **Continue the right Codex task after a usage-window reset.** Registers the real thread UUID, turn task, and Git, directory, or managed workspace, with a daemon, watchdog, and checkpoints. | You need resume without agent routing |
 | `sol-luna-handoff` | **Plan with Sol, execute quickly with Luna, and use Terra only when needed.** Deterministically selects Tier 1/2/3 from scope and risk. | You need planning/execution routing without resume |
 | `quota-aware-runner` | **Install resume, routing, checkpoints, and final verification as one workflow.** Bundles the Auto Resume runtime and all six agent definitions. | You want the complete workflow out of the box |
 
@@ -53,9 +53,9 @@ Each Skill installs independently. `quota-aware-runner` does not depend on the o
 
 ### 1. Exact resume instead of a vague re-prompt
 
-`codex-auto-resume` runs one preflight for every user turn and subagent trigger turn. Its registration key is `actual_thread_id + task_id + git_root`. A shared daemon starts on demand only after an eligible preflight registers or reuses a task; on Windows it launches hidden and detached instead of opening a startup CMD window. After the daemon detects a usage-limit interruption, the task enters `WAITING_RESET`; when the window returns, child and parent tasks resume in leaf-first order. Runtime billing remains fixed to `billing_policy=included_only`.
+`codex-auto-resume` v1.5.0 runs one preflight for every user turn, automatic resume turn, and subagent trigger turn, including questions and non-Git work. Its registration key is `actual_thread_id + task_id + workspace_root`; workspaces resolve as Git roots, ordinary directories, or per-thread managed directories. A shared daemon starts on demand only after an eligible preflight registers or reuses a task; on Windows it launches hidden and detached instead of opening a startup CMD window. After the daemon detects a usage-limit interruption, the task enters `WAITING_RESET`; when the window returns, child and parent tasks resume in leaf-first order. Runtime billing remains fixed to `billing_policy=included_only`.
 
-Missing required context or an explicit opt-out returns `SKIPPED`. External or unrelated Git changes made while waiting move the task to `NEEDS_USER`, preventing an old checkpoint from being applied to new code.
+Missing or conflicting identity, an explicit opt-out, or a damaged runtime returns `SKIPPED`. Directory and managed workspace snapshots record only the canonical root and directory identity without recursively reading content; Git workspaces retain change-aware snapshots.
 
 ### 2. Make the fast executor the default
 

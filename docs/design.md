@@ -37,7 +37,7 @@ The composite-owned `SKILL.md` keeps its quota/preflight/checkpoint prefix, but 
 4. checkpoint after routing, implementation, and fresh verification;
 5. set `AUTO_RESUME_STATUS=DONE` only after every acceptance criterion has fresh evidence.
 
-Missing trusted thread metadata or a non-Git project produces the canonical `SKIPPED` preflight outcome and does not prevent routing. The shared Auto Resume daemon starts on demand only after a qualified registration or reuse; Windows uses hidden, detached process creation, and `--no-start` suppresses both watchdog and daemon startup.
+Auto Resume v1.5.0 preflights every user turn, automatic resume turn, and subagent trigger turn. It resolves Git roots, ordinary directories, and per-thread managed directories; a missing visible goal uses a fixed continuation goal, while missing or conflicting identity, explicit opt-out, or runtime damage produce `SKIPPED`. Directory snapshots are non-recursive and use only the canonical root plus directory identity. The shared daemon starts on demand only after a qualified registration or reuse; Windows uses hidden, detached process creation, and `--no-start` suppresses both watchdog and daemon startup.
 
 ## Isolated installs
 
