@@ -3,11 +3,11 @@
   "upstreams": {
     "codex-auto-resume": {
       "repository": "https://github.com/shangzhimingge/codex-auto-resume",
-      "commit": "28b3d2a36168d759ed1e61074e48130bf89f119f",
+      "commit": "ad0e0e0c45eb62ea691d4aaf7781aa71506a8bd4",
       "sourcePath": "skill/codex-auto-resume",
-      "skillVersion": "1.5.1",
+      "skillVersion": "1.5.2",
       "mirrorMode": "pack-path-adjusted",
-      "treeSha256": "2c8fc3035a9aa25274883b4a77ce2496a51c9a8c708ce98eb002c3e39a74e752"
+      "treeSha256": "89815c6223bad89207f574f5cc31bdff5416e0784fc53afd18aa79ee9c29e088"
     },
     "sol-luna-handoff": {
       "repository": "https://github.com/shangzhimingge/sol-luna-handoff",
