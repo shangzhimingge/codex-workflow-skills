@@ -12,8 +12,8 @@ AUTO = ROOT / "skills" / "codex-auto-resume"
 ROUTING_MARKER = "## Deterministic routing"
 SOL_COMMIT = "17f01bd1250c9ed719a44a838b64172a32ba24da"
 SOL_TREE_SHA256 = "7433d000650a6bc5c605d579243bedce99a0dda135867cb110d6d12b4b9efe6c"
-AUTO_COMMIT = "dee86d7e64b7ac62721743b9c55475c63a24c39b"
-AUTO_TREE_SHA256 = "09d6c41bb2f96e7a0a09381de120be294c6e9c3498c18126ba86dc1cab6f8422"
+AUTO_COMMIT = "28b3d2a36168d759ed1e61074e48130bf89f119f"
+AUTO_TREE_SHA256 = "2c8fc3035a9aa25274883b4a77ce2496a51c9a8c708ce98eb002c3e39a74e752"
 CANONICAL_FILES = {
     "SKILL.md",
     "agents/openai.yaml",
@@ -170,11 +170,11 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertEqual(AUTO_COMMIT, auto["commit"])
         self.assertEqual("skill/codex-auto-resume", auto["sourcePath"])
         self.assertEqual("pack-path-adjusted", auto["mirrorMode"])
-        self.assertEqual("1.5.0", auto["skillVersion"])
+        self.assertEqual("1.5.1", auto["skillVersion"])
         self.assertEqual(AUTO_TREE_SHA256, auto["treeSha256"])
         self.assertEqual(auto["skillVersion"], (AUTO / "VERSION").read_text(encoding="utf-8").strip())
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
-        self.assertEqual("1.4.0", package["version"])
+        self.assertEqual("1.4.1", package["version"])
 
     def test_docs_describe_luna_first_canonical_and_composite_parity(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -191,18 +191,26 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertIn("routing tail", design)
         self.assertIn("upstream-provenance.json", design)
 
-    def test_docs_describe_v150_any_workspace_preflight(self):
+    def test_docs_describe_v151_process_containment_and_startup_handshake(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         english = (ROOT / "README.en.md").read_text(encoding="utf-8")
         design = (ROOT / "docs" / "design.md").read_text(encoding="utf-8")
-        self.assertIn("v1.5.0", readme)
+        self.assertIn("v1.5.1", readme)
         self.assertIn("非 Git", readme)
         self.assertIn("workspace_root", readme)
-        self.assertIn("v1.5.0", english)
+        self.assertIn("进程树", readme)
+        self.assertIn("PID + 进程身份", readme)
+        self.assertIn("首次扫描前", readme)
+        self.assertIn("v1.5.1", english)
         self.assertIn("non-Git", english)
-        self.assertIn("workspace_root", english)
+        self.assertIn("hidden process groups", english)
+        self.assertIn("PID plus process identity", english)
+        self.assertIn("initial daemon heartbeat", english)
         self.assertIn("ordinary directories", design)
         self.assertIn("managed directories", design)
+        self.assertIn("TERM-to-KILL", design)
+        self.assertIn("compare-before-unlink", design)
+        self.assertIn("initial heartbeat", design)
 
     def test_auto_resume_tree_matches_the_pinned_index_digest(self):
         self.assertEqual(AUTO_TREE_SHA256, git_index_tree_digest(AUTO))

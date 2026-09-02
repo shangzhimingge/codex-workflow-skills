@@ -53,7 +53,7 @@ npx skills add shangzhimingge/codex-workflow-skills --skill '*' --agent codex --
 
 ### 1. 精确续作，不靠模糊提示
 
-`codex-auto-resume` v1.5.0 为每个用户 turn、自动恢复 turn 和子代理 trigger turn 各执行一次预检，问题咨询和非 Git 工作同样覆盖。注册键为 `actual_thread_id + task_id + workspace_root`；工作区可解析为 Git 根、普通目录或每 thread 托管目录。共享 daemon 只在合格预检注册或复用任务后按需启动；Windows 会以隐藏、脱离终端的方式运行，不再通过开机 CMD 窗口启动。daemon 发现用量限制中断后进入 `WAITING_RESET`，窗口恢复时按叶子优先顺序继续子代理与父任务。运行时固定为 `billing_policy=included_only`。
+`codex-auto-resume` v1.5.1 延续 v1.5.0 的全工作区预检：每个用户 turn、自动恢复 turn 和子代理 trigger turn 各执行一次，问题咨询和非 Git 工作同样覆盖。注册键为 `actual_thread_id + task_id + workspace_root`；工作区可解析为 Git 根、普通目录或每 thread 托管目录。共享 daemon 只在合格预检注册或复用任务后按需启动；Windows 限额探测及其子进程以隐藏进程组运行，并在成功、异常、超时和启动失败路径统一回收整棵进程树。daemon 与 watchdog 的锁和状态按 PID + 进程身份判活，真实权限错误不会被当作陈旧锁删除；daemon 在首次扫描前发布已验证身份和心跳，避免慢扫描造成启动握手误判。窗口恢复时仍按叶子优先顺序继续任务，运行时固定为 `billing_policy=included_only`。
 
 身份缺失或冲突、显式 opt-out 或运行环境损坏时返回 `SKIPPED`。普通目录与托管工作区的快照只记录规范根目录和目录身份，不递归读取内容；Git 工作区继续使用可感知变更的快照。
 
