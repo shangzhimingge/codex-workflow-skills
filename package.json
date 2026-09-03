@@ -1,6 +1,6 @@
 {
   "name": "codex-workflow-skills",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "private": true,
   "description": "A skills.sh pack for auto-resume and default Sol-to-Luna workflow routing.",
   "type": "module",

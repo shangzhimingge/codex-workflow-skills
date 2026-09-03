@@ -80,10 +80,14 @@ try {
       const unrelated = path.join(base, "unrelated-execution");
       fs.mkdirSync(unrelated, { recursive: true });
       const skillRoot = path.dirname(installed.get(skill)[0]);
+      const isolatedEnv = { ...process.env, CODEX_HOME: path.join(base, "isolated-codex-home") };
+      for (const name of ["CODEX_THREAD_ID", "CODEX_AUTO_RESUME_JOB_ID", "CODEX_AUTO_RESUME_TASK_ID"]) {
+        delete isolatedEnv[name];
+      }
       const output = execFileSync(process.env.PYTHON ?? "python", [
-        path.join(skillRoot, "scripts", "preflight.py"), "--goal", "installed local fixture",
-      ], { cwd: unrelated, encoding: "utf8" });
-      assert.equal(JSON.parse(output).outcome, "SKIPPED", "project-local preflight from unrelated cwd");
+        path.join(skillRoot, "scripts", "preflight.py"), "--goal", "installed local fixture", "--no-start",
+      ], { cwd: unrelated, encoding: "utf8", env: isolatedEnv });
+      assert.equal(JSON.parse(output).outcome, "SKIPPED", "isolated preflight from unrelated cwd");
     }
   }
   console.log("PASS Codex-scoped pack, individual installs, and unrelated-cwd preflight");
