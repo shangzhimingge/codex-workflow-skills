@@ -12,8 +12,8 @@ AUTO = ROOT / "skills" / "codex-auto-resume"
 ROUTING_MARKER = "## Deterministic routing"
 SOL_COMMIT = "17f01bd1250c9ed719a44a838b64172a32ba24da"
 SOL_TREE_SHA256 = "7433d000650a6bc5c605d579243bedce99a0dda135867cb110d6d12b4b9efe6c"
-AUTO_COMMIT = "954edfccbcf88b0c2d0cd578b53db8b3fe611e5a"
-AUTO_TREE_SHA256 = "115a234c08131f223e86b4ab36c2b17d001ea97c88d948f106cd32753b9182a1"
+AUTO_COMMIT = "db9f450a9f5c05a33abfbbd1258e8257ddfa5fb7"
+AUTO_TREE_SHA256 = "69c73d20d80482f7397c083b35d33d7b43ef6a965d4a992caaeb13550a4dd6a5"
 CANONICAL_FILES = {
     "SKILL.md",
     "agents/openai.yaml",
@@ -170,11 +170,11 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertEqual(AUTO_COMMIT, auto["commit"])
         self.assertEqual("skill/codex-auto-resume", auto["sourcePath"])
         self.assertEqual("pack-path-adjusted", auto["mirrorMode"])
-        self.assertEqual("1.5.3", auto["skillVersion"])
+        self.assertEqual("1.5.4", auto["skillVersion"])
         self.assertEqual(AUTO_TREE_SHA256, auto["treeSha256"])
         self.assertEqual(auto["skillVersion"], (AUTO / "VERSION").read_text(encoding="utf-8").strip())
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
-        self.assertEqual("1.4.3", package["version"])
+        self.assertEqual("1.4.4", package["version"])
 
     def test_docs_describe_luna_first_canonical_and_composite_parity(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -191,22 +191,22 @@ class SolLunaContractTests(unittest.TestCase):
         self.assertIn("routing tail", design)
         self.assertIn("upstream-provenance.json", design)
 
-    def test_docs_describe_v153_lock_race_and_job_containment(self):
+    def test_docs_describe_v154_lock_state_machine_and_job_containment(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         english = (ROOT / "README.en.md").read_text(encoding="utf-8")
         design = (ROOT / "docs" / "design.md").read_text(encoding="utf-8")
-        self.assertIn("v1.5.3", readme)
+        self.assertIn("v1.5.4", readme)
         self.assertIn("非 Git", readme)
         self.assertIn("workspace_root", readme)
         self.assertIn("Job Object", readme)
         self.assertIn("创建身份", readme)
         self.assertIn("PID + 进程身份", readme)
         self.assertIn("首次扫描前", readme)
-        self.assertIn("v1.5.3", english)
+        self.assertIn("v1.5.4", english)
         self.assertIn("non-Git", english)
         self.assertIn("kill-on-close Job Object", english)
         self.assertIn("creation-identity descendant snapshot", english)
-        self.assertIn("lock disappeared", english)
+        self.assertIn("named Mutex", english)
         self.assertIn("PID plus process identity", english)
         self.assertIn("initial daemon heartbeat", english)
         self.assertIn("ordinary directories", design)
